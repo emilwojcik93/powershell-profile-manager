@@ -146,6 +146,24 @@ jobs:
         
         Write-Host "Installation state verification completed" -ForegroundColor Green
         
+        # Verify install log was created and contains expected information
+        if (Test-Path $installLogPath) {
+          Write-Host "Install log created successfully: $installLogPath" -ForegroundColor Green
+          $logContent = Get-Content -Path $installLogPath -Raw
+          if ($logContent -match "Installation completed successfully") {
+            Write-Host "  [OK] Install log contains success message" -ForegroundColor Green
+          } else {
+            Write-Host "  [WARNING] Install log missing success message" -ForegroundColor Yellow
+          }
+          if ($logContent -match "Log file saved to") {
+            Write-Host "  [OK] Install log contains log file reference" -ForegroundColor Green
+          } else {
+            Write-Host "  [WARNING] Install log missing log file reference" -ForegroundColor Yellow
+          }
+        } else {
+          Write-Host "WARNING: Install log not created: $installLogPath" -ForegroundColor Yellow
+        }
+        
     - name: Test Uninstallation Script
       shell: pwsh
       run: |
@@ -154,8 +172,8 @@ jobs:
         $uninstallLogPath = Join-Path $env:TEMP "Uninstall-Test-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
         Write-Host "Uninstall log: $uninstallLogPath" -ForegroundColor Cyan
         
-        # Test with automation parameters
-        .\scripts\uninstall.ps1 -InstallPath "$env:USERPROFILE\PowerShell\ProfileManager-Test" -Unattended
+        # Test with automation parameters and logging
+        .\scripts\uninstall.ps1 -InstallPath "$env:USERPROFILE\PowerShell\ProfileManager-Test" -Unattended -LogPath $uninstallLogPath
         
         # Verify uninstallation
         $testPath = "$env:USERPROFILE\PowerShell\ProfileManager-Test"
@@ -165,6 +183,24 @@ jobs:
         }
         
         Write-Host "Uninstallation verification completed successfully" -ForegroundColor Green
+        
+        # Verify uninstall log was created and contains expected information
+        if (Test-Path $uninstallLogPath) {
+          Write-Host "Uninstall log created successfully: $uninstallLogPath" -ForegroundColor Green
+          $logContent = Get-Content -Path $uninstallLogPath -Raw
+          if ($logContent -match "Uninstallation completed successfully") {
+            Write-Host "  [OK] Uninstall log contains success message" -ForegroundColor Green
+          } else {
+            Write-Host "  [WARNING] Uninstall log missing success message" -ForegroundColor Yellow
+          }
+          if ($logContent -match "Log file saved to") {
+            Write-Host "  [OK] Uninstall log contains log file reference" -ForegroundColor Green
+          } else {
+            Write-Host "  [WARNING] Uninstall log missing log file reference" -ForegroundColor Yellow
+          }
+        } else {
+          Write-Host "WARNING: Uninstall log not created: $uninstallLogPath" -ForegroundColor Yellow
+        }
         
     - name: Verify Clean Uninstall State
       shell: pwsh
