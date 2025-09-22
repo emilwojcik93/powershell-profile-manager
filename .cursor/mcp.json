@@ -1,31 +1,31 @@
 {
-  "mcpServers": {
-    "powershell-exec": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-powershell"
-      ],
-      "env": {
-        "POWERSHELL_EXECUTION_POLICY": "Bypass"
-      }
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\ewojcik\\868fbc801667e65e334679fec62b6879"
-      ]
-    },
-    "git": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-git",
-        "--repository",
-        "C:\\Users\\ewojcik\\868fbc801667e65e334679fec62b6879"
-      ]
+    "mcpServers": {
+        "powershell-exec": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-powershell"
+            ],
+            "env": {
+                "POWERSHELL_EXECUTION_POLICY": "Bypass"
+            }
+        },
+        "filesystem": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "C:\\Users\\ewojcik\\868fbc801667e65e334679fec62b6879"
+            ]
+        },
+        "git": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-git",
+                "--repository",
+                "C:\\Users\\ewojcik\\868fbc801667e65e334679fec62b6879"
+            ]
+        }
     }
-  }
 }
