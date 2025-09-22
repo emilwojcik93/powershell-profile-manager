@@ -20,7 +20,7 @@ $remoteInstallLogPath = Join-Path $env:TEMP "Remote-Install-Test-$(Get-Date -For
 Write-Host "Remote install log: $remoteInstallLogPath" -ForegroundColor Cyan
 
 # Test remote installation using Invoke-WebRequest
-$installUrl = "https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/install.ps1"
+$installUrl = "https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1"
 
 try {
     Write-Host "Downloading and executing remote install script..." -ForegroundColor Cyan

@@ -20,7 +20,7 @@ $installLogPath = Join-Path $env:TEMP "Install-Test-$(Get-Date -Format 'yyyyMMdd
 Write-Host "Install log: $installLogPath" -ForegroundColor Cyan
 
 # Test with automation parameters
-.\scripts\install.ps1 -InstallPath "$env:USERPROFILE\PowerShell\ProfileManager-Test" -Modules @('VideoCompressor') -NonInteractive -LogPath $installLogPath
+.\scripts\deploy\install.ps1 -InstallPath "$env:USERPROFILE\PowerShell\ProfileManager-Test" -Modules @('VideoCompressor') -NonInteractive -LogPath $installLogPath
 
 # Verify installation
 $testPath = "$env:USERPROFILE\PowerShell\ProfileManager-Test"

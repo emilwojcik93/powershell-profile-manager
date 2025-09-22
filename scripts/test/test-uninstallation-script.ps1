@@ -20,7 +20,7 @@ $uninstallLogPath = Join-Path $env:TEMP "Uninstall-Test-$(Get-Date -Format 'yyyy
 Write-Host "Uninstall log: $uninstallLogPath" -ForegroundColor Cyan
 
 # Test with automation parameters and logging
-.\scripts\uninstall.ps1 -InstallPath "$env:USERPROFILE\PowerShell\ProfileManager-Test" -Unattended -LogPath $uninstallLogPath
+.\scripts\deploy\uninstall.ps1 -InstallPath "$env:USERPROFILE\PowerShell\ProfileManager-Test" -Unattended -LogPath $uninstallLogPath
 
 # Verify uninstallation
 $testPath = "$env:USERPROFILE\PowerShell\ProfileManager-Test"
