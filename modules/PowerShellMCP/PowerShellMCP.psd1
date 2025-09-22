@@ -2,7 +2,7 @@
     # Module manifest for PowerShellMCP
     RootModule = 'PowerShellMCP.psm1'
     ModuleVersion = '1.0.0'
-    GUID = 'c3d4e5f6-g7h8-9012-cdef-345678901234'
+    GUID = 'c3d4e5f6-a7b8-9012-cdef-345678901234'
     Author = 'PowerShell Profile Manager'
     CompanyName = 'Community'
     Copyright = '(c) 2024. All rights reserved.'
