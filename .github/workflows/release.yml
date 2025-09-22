@@ -1,0 +1,222 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      include_examples:
+        description: 'Include example modules in release'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        version: '7.4'
+        
+    - name: Validate repository structure
+      run: |
+        Write-Host "Validating repository structure..."
+        
+        $requiredFiles = @(
+          "Microsoft.PowerShell_profile.ps1",
+          "install.ps1",
+          "uninstall.ps1",
+          "README.md",
+          "CONTRIBUTING.md"
+        )
+        
+        $requiredDirs = @(
+          "modules",
+          "docs"
+        )
+        
+        foreach ($file in $requiredFiles) {
+          if (-not (Test-Path $file)) {
+            Write-Error "Missing required file: $file"
+            exit 1
+          }
+        }
+        
+        foreach ($dir in $requiredDirs) {
+          if (-not (Test-Path $dir)) {
+            Write-Error "Missing required directory: $dir"
+            exit 1
+          }
+        }
+        
+        Write-Host "Repository structure validation passed"
+        
+    - name: Test modules
+      run: |
+        Write-Host "Testing modules..."
+        
+        $moduleDirs = Get-ChildItem -Path "modules" -Directory
+        
+        foreach ($moduleDir in $moduleDirs) {
+          $moduleName = $moduleDir.Name
+          Write-Host "Testing module: $moduleName"
+          
+          $moduleFiles = @(
+            "$moduleName.psm1",
+            "$moduleName.psd1",
+            "README.md"
+          )
+          
+          foreach ($file in $moduleFiles) {
+            $filePath = Join-Path $moduleDir.FullName $file
+            if (-not (Test-Path $filePath)) {
+              Write-Error "Missing file: $file"
+              exit 1
+            }
+          }
+          
+          # Test module syntax
+          try {
+            $modulePath = Join-Path $moduleDir.FullName "$moduleName.psm1"
+            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $modulePath -Raw), [ref]$null)
+            Write-Host "  Syntax validation passed"
+          }
+          catch {
+            Write-Error "  Syntax validation failed: $($_.Exception.Message)"
+            exit 1
+          }
+        }
+        
+        Write-Host "Module testing completed"
+        
+    - name: Prepare release
+      run: |
+        Write-Host "Preparing release..."
+        
+        # Determine version
+        if ($env:GITHUB_REF -like "refs/tags/*") {
+          $version = $env:GITHUB_REF -replace "refs/tags/v", ""
+        } else {
+          $version = "${{ github.event.inputs.version }}"
+        }
+        
+        Write-Host "Release version: $version"
+        
+        # Set environment variables for next steps
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+        
+    - name: Create release package
+      run: |
+        Write-Host "Creating release package..."
+        
+        # Create releases directory
+        New-Item -ItemType Directory -Path "releases" -Force | Out-Null
+        
+        # Run release script from scripts directory
+        $includeExamples = "${{ github.event.inputs.include_examples }}" -eq "true"
+        $includeExamplesParam = if ($includeExamples) { "-IncludeExamples" } else { "" }
+        
+        .\scripts\release.ps1 -Version $env:VERSION -OutputPath ".\releases" $includeExamplesParam
+        
+        Write-Host "Release package created"
+        
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-package
+        path: releases/
+        retention-days: 30
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ env.VERSION }}
+        name: PowerShell Profile Manager v${{ env.VERSION }}
+        body: |
+          # PowerShell Profile Manager v${{ env.VERSION }}
+          
+          ## What's New
+          
+          This release includes:
+          - Updated modules and functionality
+          - Bug fixes and improvements
+          - Enhanced documentation
+          
+          ## Installation
+          
+          ### Quick Install
+          ```powershell
+          iwr -useb https://raw.githubusercontent.com/${{ github.repository }}/main/install.ps1 | iex
+          ```
+          
+          ### Manual Install
+          1. Download the release archive
+          2. Extract to your desired location
+          3. Run the install.ps1 script
+          
+          ## Usage
+          
+          After installation, restart PowerShell and use:
+          
+          ```powershell
+          # Check loaded modules
+          Get-ProfileModules
+          
+          # Use VideoCompressor
+          Compress-Video "MyVideo.mp4"
+          
+          # Check module status
+          Get-ProfileModuleStatus VideoCompressor
+          ```
+          
+          ## Documentation
+          
+          See the included documentation for comprehensive guides:
+          - Installation guide
+          - Module development guide
+          - Troubleshooting guide
+          
+          ## Support
+          
+          - GitHub Issues: https://github.com/${{ github.repository }}/issues
+          - Documentation: https://github.com/${{ github.repository }}/docs
+          
+        files: |
+          releases/*.zip
+        draft: false
+        prerelease: false
+        
+    - name: Update installation URLs
+      run: |
+        Write-Host "Updating installation URLs in documentation..."
+        
+        # Update README.md with new release URL
+        $readmeContent = Get-Content "README.md" -Raw
+        $readmeContent = $readmeContent -replace 'https://raw\.githubusercontent\.com/[^/]+/[^/]+/main', "https://raw.githubusercontent.com/${{ github.repository }}/main"
+        Set-Content -Path "README.md" -Value $readmeContent -Encoding UTF8
+        
+        # Update install.ps1 with new repository URL
+        $installContent = Get-Content "scripts\install.ps1" -Raw
+        $installContent = $installContent -replace 'https://raw\.githubusercontent\.com/[^/]+/[^/]+/main', "https://raw.githubusercontent.com/${{ github.repository }}/main"
+        Set-Content -Path "scripts\install.ps1" -Value $installContent -Encoding UTF8
+        
+        Write-Host "Installation URLs updated"
+        
+    - name: Commit updated files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md scripts/install.ps1
+        git commit -m "Update installation URLs for release v${{ env.VERSION }}" || exit 0
+        git push

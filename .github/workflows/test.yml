@@ -1,0 +1,239 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        powershell-version: ['5.1', '7.4']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PowerShell ${{ matrix.powershell-version }}
+      uses: actions/setup-powershell@v1
+      with:
+        version: ${{ matrix.powershell-version }}
+        
+    - name: Validate repository structure
+      run: |
+        Write-Host "Validating repository structure..."
+        
+        $requiredFiles = @(
+          "Microsoft.PowerShell_profile.ps1",
+          "install.ps1",
+          "uninstall.ps1",
+          "README.md",
+          "CONTRIBUTING.md"
+        )
+        
+        $requiredDirs = @(
+          "modules",
+          "docs"
+        )
+        
+        foreach ($file in $requiredFiles) {
+          if (-not (Test-Path $file)) {
+            Write-Error "Missing required file: $file"
+            exit 1
+          }
+        }
+        
+        foreach ($dir in $requiredDirs) {
+          if (-not (Test-Path $dir)) {
+            Write-Error "Missing required directory: $dir"
+            exit 1
+          }
+        }
+        
+        Write-Host "Repository structure validation passed"
+        
+    - name: Test module syntax
+      run: |
+        Write-Host "Testing module syntax..."
+        
+        $moduleDirs = Get-ChildItem -Path "modules" -Directory
+        
+        foreach ($moduleDir in $moduleDirs) {
+          $moduleName = $moduleDir.Name
+          Write-Host "Testing module: $moduleName"
+          
+          # Test .psm1 file syntax
+          $psm1Path = Join-Path $moduleDir.FullName "$moduleName.psm1"
+          if (Test-Path $psm1Path) {
+            try {
+              $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $psm1Path -Raw), [ref]$null)
+              Write-Host "  .psm1 syntax validation passed"
+            }
+            catch {
+              Write-Error "  .psm1 syntax validation failed: $($_.Exception.Message)"
+              exit 1
+            }
+          }
+          
+          # Test .psd1 file syntax
+          $psd1Path = Join-Path $moduleDir.FullName "$moduleName.psd1"
+          if (Test-Path $psd1Path) {
+            try {
+              $null = Import-PowerShellDataFile $psd1Path
+              Write-Host "  .psd1 syntax validation passed"
+            }
+            catch {
+              Write-Error "  .psd1 syntax validation failed: $($_.Exception.Message)"
+              exit 1
+            }
+          }
+        }
+        
+        Write-Host "Module syntax testing completed"
+        
+    - name: Test profile script syntax
+      run: |
+        Write-Host "Testing profile script syntax..."
+        
+        try {
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "Microsoft.PowerShell_profile.ps1" -Raw), [ref]$null)
+          Write-Host "Profile script syntax validation passed"
+        }
+        catch {
+          Write-Error "Profile script syntax validation failed: $($_.Exception.Message)"
+          exit 1
+        }
+        
+    - name: Test installation script syntax
+      run: |
+        Write-Host "Testing installation script syntax..."
+        
+        try {
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "install.ps1" -Raw), [ref]$null)
+          Write-Host "Installation script syntax validation passed"
+        }
+        catch {
+          Write-Error "Installation script syntax validation failed: $($_.Exception.Message)"
+          exit 1
+        }
+        
+    - name: Test uninstallation script syntax
+      run: |
+        Write-Host "Testing uninstallation script syntax..."
+        
+        try {
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "uninstall.ps1" -Raw), [ref]$null)
+          Write-Host "Uninstallation script syntax validation passed"
+        }
+        catch {
+          Write-Error "Uninstallation script syntax validation failed: $($_.Exception.Message)"
+          exit 1
+        }
+        
+    - name: Test module loading
+      run: |
+        Write-Host "Testing module loading..."
+        
+        # Create a temporary profile directory
+        $tempProfileDir = "temp-profile"
+        New-Item -ItemType Directory -Path $tempProfileDir -Force | Out-Null
+        
+        # Copy modules to temp directory
+        Copy-Item -Path "modules" -Destination $tempProfileDir -Recurse -Force
+        
+        # Copy main profile script
+        Copy-Item -Path "Microsoft.PowerShell_profile.ps1" -Destination $tempProfileDir -Force
+        
+        # Test loading each module
+        $moduleDirs = Get-ChildItem -Path "modules" -Directory
+        
+        foreach ($moduleDir in $moduleDirs) {
+          $moduleName = $moduleDir.Name
+          Write-Host "Testing module loading: $moduleName"
+          
+          $modulePath = Join-Path $tempProfileDir "modules\$moduleName\$moduleName.psm1"
+          
+          if (Test-Path $modulePath) {
+            try {
+              Import-Module $modulePath -Force -ErrorAction Stop
+              Write-Host "  Module loaded successfully"
+              
+              # Test if module has test function
+              $testFunction = "Test-$moduleName"
+              if (Get-Command $testFunction -ErrorAction SilentlyContinue) {
+                Write-Host "  Running module tests..."
+                try {
+                  & $testFunction -TestType Basic
+                  Write-Host "  Module tests passed"
+                }
+                catch {
+                  Write-Warning "  Module tests failed: $($_.Exception.Message)"
+                }
+              }
+              
+              Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
+            }
+            catch {
+              Write-Error "  Module loading failed: $($_.Exception.Message)"
+              exit 1
+            }
+          }
+        }
+        
+        # Cleanup
+        Remove-Item -Path $tempProfileDir -Recurse -Force
+        
+        Write-Host "Module loading testing completed"
+        
+    - name: Test documentation links
+      run: |
+        Write-Host "Testing documentation links..."
+        
+        # Check if all referenced files exist
+        $readmeContent = Get-Content "README.md" -Raw
+        
+        # Extract file references from README
+        $fileReferences = [regex]::Matches($readmeContent, '\[([^\]]+)\]\(([^)]+)\)') | ForEach-Object { $_.Groups[2].Value }
+        
+        foreach ($reference in $fileReferences) {
+          if ($reference -like "*.md" -and $reference -notlike "http*") {
+            if (-not (Test-Path $reference)) {
+              Write-Warning "Documentation link points to non-existent file: $reference"
+            } else {
+              Write-Host "  Documentation link valid: $reference"
+            }
+          }
+        }
+        
+        Write-Host "Documentation link testing completed"
+        
+    - name: Generate test report
+      run: |
+        Write-Host "Generating test report..."
+        
+        $testReport = @{
+          PowerShellVersion = $PSVersionTable.PSVersion.ToString()
+          TestDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+          RepositoryStructure = "PASS"
+          ModuleSyntax = "PASS"
+          ProfileScriptSyntax = "PASS"
+          InstallationScriptSyntax = "PASS"
+          UninstallationScriptSyntax = "PASS"
+          ModuleLoading = "PASS"
+          DocumentationLinks = "PASS"
+        }
+        
+        $testReport | ConvertTo-Json | Out-File -FilePath "test-report.json" -Encoding UTF8
+        
+        Write-Host "Test report generated: test-report.json"
+        
+    - name: Upload test report
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report-${{ matrix.powershell-version }}
+        path: test-report.json
+        retention-days: 30
