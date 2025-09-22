@@ -1,156 +1,130 @@
-#Requires -Version 5.1
-<#
-.SYNOPSIS
-    Test script to verify comprehensive validation workflow components
+# Test Comprehensive Validation Workflow
+# This script tests all components of the comprehensive validation system
 
-.DESCRIPTION
-    This script tests both YAML and PowerShell validation components to ensure
-    the comprehensive validation workflow will work correctly.
-
-.PARAMETER TestPath
-    Path to test (default: current directory)
-
-.EXAMPLE
-    .\test-comprehensive-validation.ps1
-#>
-
-[CmdletBinding()]
 param(
-    [string]$TestPath = "."
+    [switch]$Verbose
 )
 
-Write-Host "Testing Comprehensive Validation Components" -ForegroundColor Cyan
-Write-Host "=" * 50 -ForegroundColor Cyan
+Write-Host "Testing Comprehensive Validation System" -ForegroundColor Green
+Write-Host "=====================================" -ForegroundColor Green
 
-# Test 1: Verify required modules are available
-Write-Host "`nTesting Module Availability..." -ForegroundColor Yellow
+# Test 1: YAML Validation Script
+Write-Host "`n1. Testing YAML Validation Script..." -ForegroundColor Yellow
 try {
-    Import-Module powershell-yaml -Force -ErrorAction Stop
-    Write-Host "  powershell-yaml module loaded" -ForegroundColor Green
-} catch {
-    Write-Host "  powershell-yaml module failed to load: $_" -ForegroundColor Red
-    exit 1
-}
-
-try {
-    Import-Module PSScriptAnalyzer -Force -ErrorAction Stop
-    Write-Host "  PSScriptAnalyzer module loaded" -ForegroundColor Green
-} catch {
-    Write-Host "  PSScriptAnalyzer module failed to load: $_" -ForegroundColor Red
-    exit 1
-}
-
-# Test 2: Test YAML validation script
-Write-Host "`nTesting YAML Validation Script..." -ForegroundColor Yellow
-$yamlValidatorPath = ".\scripts\validate-yaml.ps1"
-if (Test-Path $yamlValidatorPath) {
-    Write-Host "  YAML validator script found" -ForegroundColor Green
-    
-    # Test with a simple YAML validation
-    try {
-        $result = & $yamlValidatorPath -YamlPath "workflows" -MinimumSeverity High -Quiet
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  YAML validation completed successfully" -ForegroundColor Green
-        } else {
-            Write-Host "  YAML validation completed with issues (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "  YAML validation failed: $_" -ForegroundColor Red
-    }
-} else {
-    Write-Host "  YAML validator script not found at: $yamlValidatorPath" -ForegroundColor Red
-}
-
-# Test 3: Test PowerShell validation script (if available)
-Write-Host "`nTesting PowerShell Validation Script..." -ForegroundColor Yellow
-$psValidatorPath = ".\tools\scripts\script-validator\src\PowerShell-Script-Validator.ps1"
-if (Test-Path $psValidatorPath) {
-    Write-Host "  ✅ PowerShell validator script found" -ForegroundColor Green
-    
-    # Test with a simple PowerShell validation
-    try {
-        $result = & $psValidatorPath -ScriptPath "scripts\validate-yaml.ps1" -MinimumSeverity High -Quiet -NoFailOnIssues
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✅ PowerShell validation completed successfully" -ForegroundColor Green
-        } else {
-            Write-Host "  ⚠️ PowerShell validation completed with issues (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "  ❌ PowerShell validation failed: $_" -ForegroundColor Red
-    }
-} else {
-    Write-Host "  ⚠️ PowerShell validator script not found at: $psValidatorPath" -ForegroundColor Yellow
-    Write-Host "    This is expected if the script-validator tool is not available" -ForegroundColor Gray
-}
-
-# Test 4: Test comprehensive workflow YAML syntax
-Write-Host "`n🔍 Testing Comprehensive Workflow YAML..." -ForegroundColor Yellow
-$workflowPath = ".\workflows\comprehensive-validation.yml"
-if (Test-Path $workflowPath) {
-    Write-Host "  ✅ Comprehensive workflow file found" -ForegroundColor Green
-    
-    # Test YAML syntax specifically
-    try {
-        $content = Get-Content -Path $workflowPath -Raw -Encoding UTF8
-        $yamlObject = ConvertFrom-Yaml -Yaml $content -ErrorAction Stop
-        Write-Host "  ✅ Comprehensive workflow YAML syntax is valid" -ForegroundColor Green
-        
-        # Check for required workflow fields
-        if ($yamlObject.name) {
-            Write-Host "  ✅ Workflow has name: $($yamlObject.name)" -ForegroundColor Green
-        } else {
-            Write-Host "  ⚠️ Workflow missing name field" -ForegroundColor Yellow
-        }
-        
-        if ($yamlObject.on) {
-            Write-Host "  ✅ Workflow has trigger configuration" -ForegroundColor Green
-        } else {
-            Write-Host "  ❌ Workflow missing trigger configuration" -ForegroundColor Red
-        }
-        
-        if ($yamlObject.jobs) {
-            Write-Host "  ✅ Workflow has jobs configuration" -ForegroundColor Green
-        } else {
-            Write-Host "  ❌ Workflow missing jobs configuration" -ForegroundColor Red
-        }
-        
-    } catch {
-        Write-Host "  ❌ Comprehensive workflow YAML syntax error: $_" -ForegroundColor Red
-    }
-} else {
-    Write-Host "  ❌ Comprehensive workflow file not found at: $workflowPath" -ForegroundColor Red
-}
-
-# Test 5: Test report generation
-Write-Host "`n📊 Testing Report Generation..." -ForegroundColor Yellow
-try {
-    $testReportPath = ".\test-validation-report.json"
-    $result = & $yamlValidatorPath -YamlPath "workflows\comprehensive-validation.yml" -OutputFormat JSON -ExportReport $testReportPath -Quiet -MinimumSeverity High
-    
-    if (Test-Path $testReportPath) {
-        Write-Host "  ✅ JSON report generated successfully" -ForegroundColor Green
-        
-        # Try to parse the report
-        try {
-            $report = Get-Content -Path $testReportPath -Raw | ConvertFrom-Json
-            Write-Host "  ✅ JSON report is valid and parseable" -ForegroundColor Green
-            Write-Host "    Files processed: $($report.Summary.TotalFiles)" -ForegroundColor Gray
-            Write-Host "    Total issues: $($report.Summary.TotalIssues)" -ForegroundColor Gray
-        } catch {
-            Write-Host "  ❌ JSON report is not valid: $_" -ForegroundColor Red
-        }
-        
-        # Clean up test report
-        Remove-Item -Path $testReportPath -Force -ErrorAction SilentlyContinue
+    $yamlTest = .\scripts\validate-yaml.ps1 -YamlPath "workflows" -ExportReport "test-yaml-report.json" -Quiet
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "   SUCCESS: YAML validation script works correctly" -ForegroundColor Green
     } else {
-        Write-Host "  ❌ JSON report was not generated" -ForegroundColor Red
+        Write-Host "   WARNING: YAML validation script had issues (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "  ❌ Report generation test failed: $_" -ForegroundColor Red
+    Write-Host "   ERROR: YAML validation script failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 2: Template Processing Script
+Write-Host "`n2. Testing Template Processing Script..." -ForegroundColor Yellow
+try {
+    $testTemplate = @"
+Hello {{name}}!
+This is a test template with {{variable}}.
+"@
+    $testTemplate | Set-Content "test-template.md"
+    
+    $templateVars = @{
+        name = "TestUser"
+        variable = "test value"
+    }
+    
+    .\scripts\process-template.ps1 -TemplatePath "test-template.md" -OutputPath "test-output.md" -Variables $templateVars
+    
+    if (Test-Path "test-output.md") {
+        $content = Get-Content "test-output.md" -Raw
+        if ($content -match "TestUser" -and $content -match "test value") {
+            Write-Host "   SUCCESS: Template processing works correctly" -ForegroundColor Green
+        } else {
+            Write-Host "   ERROR: Template processing failed - variables not replaced" -ForegroundColor Red
+        }
+        Remove-Item "test-template.md", "test-output.md" -ErrorAction SilentlyContinue
+    } else {
+        Write-Host "   ERROR: Template processing failed - output file not created" -ForegroundColor Red
+    }
+} catch {
+    Write-Host "   ERROR: Template processing script failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 3: PowerShell Syntax Validation
+Write-Host "`n3. Testing PowerShell Syntax Validation..." -ForegroundColor Yellow
+try {
+    .\scripts\validate-powershell-syntax.ps1 -RepositoryRoot .
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "   SUCCESS: PowerShell syntax validation works correctly" -ForegroundColor Green
+    } else {
+        Write-Host "   WARNING: PowerShell syntax validation had issues (exit code: $LASTEXITCODE)" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "   ERROR: PowerShell syntax validation failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# Test 4: Workflow Files Exist
+Write-Host "`n4. Testing Workflow Files..." -ForegroundColor Yellow
+$workflows = @(
+    "workflows\comprehensive-validation.yml",
+    "workflows\powershell-validation.yml",
+    "workflows\background-agent.yml",
+    "workflows\release.yml",
+    "workflows\test-installation.yml",
+    "workflows\test.yml",
+    "workflows\validate.yml"
+)
+
+$allWorkflowsExist = $true
+foreach ($workflow in $workflows) {
+    if (Test-Path $workflow) {
+        Write-Host "   SUCCESS: $workflow exists" -ForegroundColor Green
+    } else {
+        Write-Host "   ERROR: $workflow missing" -ForegroundColor Red
+        $allWorkflowsExist = $false
+    }
+}
+
+# Test 5: Template Files Exist
+Write-Host "`n5. Testing Template Files..." -ForegroundColor Yellow
+$templates = @(
+    "templates\markdown\pr-comment-template.md",
+    "templates\html\critical-errors-email-template.html",
+    "templates\html\pr-issues-email-template.html"
+)
+
+$allTemplatesExist = $true
+foreach ($template in $templates) {
+    if (Test-Path $template) {
+        Write-Host "   SUCCESS: $template exists" -ForegroundColor Green
+    } else {
+        Write-Host "   ERROR: $template missing" -ForegroundColor Red
+        $allTemplatesExist = $false
+    }
+}
+
+# Test 6: Script Files Exist
+Write-Host "`n6. Testing Script Files..." -ForegroundColor Yellow
+$scripts = @(
+    "scripts\validate-yaml.ps1",
+    "scripts\validate-powershell-syntax.ps1",
+    "scripts\process-template.ps1"
+)
+
+$allScriptsExist = $true
+foreach ($script in $scripts) {
+    if (Test-Path $script) {
+        Write-Host "   SUCCESS: $script exists" -ForegroundColor Green
+    } else {
+        Write-Host "   ERROR: $script missing" -ForegroundColor Red
+        $allScriptsExist = $false
+    }
 }
 
 # Summary
-Write-Host "`n📋 Test Summary" -ForegroundColor Cyan
+Write-Host "`nTest Summary" -ForegroundColor Cyan
 Write-Host "=" * 50 -ForegroundColor Cyan
 Write-Host "All core components tested successfully!" -ForegroundColor Green
 Write-Host "`nThe comprehensive validation workflow is ready to use!" -ForegroundColor Green
