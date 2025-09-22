@@ -28,14 +28,26 @@ param(
     [switch]$SkipRestartPrompt,
     
     [Parameter(Mandatory = $false)]
-    [string]$LogPath
+    [string]$LogPath,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Unattended
 )
 
 # Set error action preference
-$ErrorActionPreference = if ($Silent) {
+$ErrorActionPreference = if ($Silent -or $NonInteractive -or $Unattended) {
     'SilentlyContinue' 
 } else {
     'Stop' 
+}
+
+# Set silent mode if any automation parameter is used
+if ($NonInteractive -or $Unattended) {
+    $Silent = $true
+    $SkipRestartPrompt = $true
 }
 
 # Initialize log file
