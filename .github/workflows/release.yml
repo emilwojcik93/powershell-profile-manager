@@ -19,31 +19,36 @@ on:
 jobs:
   release:
     runs-on: windows-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Validate Repository Structure
       shell: pwsh
-      run: .\.github\scripts\validate-repository-structure.ps1
-      
+      run: .\scripts\validate-repository-structure.ps1
+
     - name: Validate PowerShell Syntax
       shell: pwsh
-      run: .\.github\scripts\validate-powershell-syntax.ps1
-      
+      run: .\scripts\validate-powershell-syntax.ps1
+
     - name: Test Module Loading
       shell: pwsh
-      run: .\.github\scripts\test-module-loading.ps1
-      
+      run: .\scripts\test-module-loading.ps1
+
     - name: Create Release Package
       shell: pwsh
-      run: .\.github\scripts\create-release-package.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}" -IncludeExamples ${{ github.event.inputs.include_examples || 'false' }}
-        
+      env:
+        VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+        INCLUDE_EXAMPLES: ${{ github.event.inputs.include_examples }}
+      run: |
+        # Force refresh - using environment variables instead of parameters
+        .\scripts\create-release-package.ps1
+
     - name: Create Release Archive
       shell: pwsh
-      run: .\.github\scripts\create-release-archive.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}"
-        
+      run: .\scripts\create-release-archive.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}"
+
     - name: Upload Release Artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -52,11 +57,11 @@ jobs:
           release-v${{ github.event.inputs.version || '1.0.0' }}/
           powershell-profile-manager-v${{ github.event.inputs.version || '1.0.0' }}.zip
         retention-days: 30
-        
+
     - name: Generate Release Body
       shell: pwsh
-      run: .\.github\scripts\prepare-release-body.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}"
-        
+      run: .\scripts\prepare-release-body.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}"
+
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: actions/create-release@v1
@@ -68,7 +73,7 @@ jobs:
         body_path: release-body.md
         draft: false
         prerelease: false
-        
+
     - name: Upload Release Asset
       if: startsWith(github.ref, 'refs/tags/')
       uses: actions/upload-release-asset@v1

@@ -1,4 +1,4 @@
-name: Test
+﻿name: Test
 
 on:
   push:
@@ -13,32 +13,32 @@ jobs:
     strategy:
       matrix:
         powershell-version: ['5.1', '7.4']
-        
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Validate Repository Structure
-      run: .\.github\scripts\validate-repository-structure.ps1
-        
+      run: .scripts\validate-repository-structure.ps1
+
     - name: Test PowerShell Syntax
-      run: .\.github\scripts\validate-powershell-syntax.ps1
-        
+      run: .scripts\validate-powershell-syntax.ps1
+
     - name: Test Module Loading
-      run: .\.github\scripts\test-module-loading.ps1
-        
+      run: .scripts\test-module-loading.ps1
+
     - name: Test Profile Loading
-      run: .\.github\scripts\test-profile-loading.ps1
-        
+      run: .scripts\test-profile-loading.ps1
+
     - name: Test PowerShellMCP Module
-      run: .\.github\scripts\test-powershellmcp-module.ps1
-        
+      run: .scripts\test-powershellmcp-module.ps1
+
     - name: Test VideoCompressor Module
-      run: .\.github\scripts\test-videocompressor-module.ps1
-        
+      run: .scripts\test-videocompressor-module.ps1
+
     - name: Generate Test Report
-      run: .\.github\scripts\generate-test-report.ps1 -OutputPath "test-report.json"
-        
+      run: .scripts\generate-test-report.ps1 -OutputPath "test-report.json"
+
     - name: Upload test report
       uses: actions/upload-artifact@v4
       with:

@@ -23,15 +23,32 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [string]$Version,
     
     [Parameter(Mandatory = $false)]
-    [bool]$IncludeExamples = $false,
+    [bool]$IncludeExamples,
     
     [Parameter(Mandatory = $false)]
     [string]$RepositoryRoot = (Get-Location)
 )
+
+# Read from environment variables if parameters are not provided
+if (-not $Version -and $env:VERSION) {
+    $Version = $env:VERSION
+}
+
+if (-not $PSBoundParameters.ContainsKey('IncludeExamples') -and $env:INCLUDE_EXAMPLES) {
+    $IncludeExamples = $env:INCLUDE_EXAMPLES -eq "true"
+} elseif (-not $PSBoundParameters.ContainsKey('IncludeExamples')) {
+    $IncludeExamples = $false
+}
+
+# Validate required parameters
+if (-not $Version) {
+    Write-Error "Version parameter is required. Either pass -Version parameter or set VERSION environment variable."
+    exit 1
+}
 
 $ErrorActionPreference = "Stop"
 

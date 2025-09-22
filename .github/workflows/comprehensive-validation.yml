@@ -1,0 +1,468 @@
+﻿name: Comprehensive Script and YAML Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.ps1'
+      - '**/*.psm1'
+      - '**/*.psd1'
+      - '**/*.yml'
+      - '**/*.yaml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.ps1'
+      - '**/*.psm1'
+      - '**/*.psd1'
+      - '**/*.yml'
+      - '**/*.yaml'
+
+env:
+  DEV_TEAM_EMAIL: ${{ vars.DEV_TEAM_EMAIL || 'dev-team@company.com' }}
+  REPO_ADMINS: ${{ vars.REPO_ADMINS || 'dev-team@company.com' }}
+
+jobs:
+  validate-scripts-and-yaml:
+    runs-on: windows-latest
+    name: Validate PowerShell Scripts and YAML Files
+    continue-on-error: true
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup PowerShell and Install Modules
+      shell: pwsh
+      run: |
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        Install-Module -Name Pester -Force -Scope CurrentUser -SkipPublisherCheck
+        Install-Module -Name powershell-yaml -Force -Scope CurrentUser
+
+    - name: Run PowerShell Script Validation
+      shell: pwsh
+      id: ps-validation
+      continue-on-error: true
+      run: |
+        try {
+          # Import the validator script
+          $validatorPath = ".\tools\scripts\script-validator\src\PowerShell-Script-Validator.ps1"
+
+          if (Test-Path $validatorPath) {
+            Write-Host "Running PowerShell validation using: $validatorPath"
+
+            # Create output directory
+            $outputDir = ".\validation-results"
+            New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+
+            # Get list of changed PowerShell files
+            $changedPsFiles = @()
+            if ("${{ github.event_name }}" -eq "pull_request") {
+              $changedPsFiles = git diff --name-only origin/${{ github.base_ref }}..HEAD | Where-Object { $_ -match '\.ps1$|\.psm1$|\.psd1$' }
+            } else {
+              $changedPsFiles = git diff --name-only HEAD~1..HEAD | Where-Object { $_ -match '\.ps1$|\.psm1$|\.psd1$' }
+            }
+
+            Write-Host "Changed PowerShell files: $($changedPsFiles -join ', ')"
+
+            # Initialize results
+            $psCriticalCount = 0
+            $psHighCount = 0
+            $psTotalCount = 0
+
+            # Validate each changed PowerShell file
+            foreach ($file in $changedPsFiles) {
+              if (Test-Path $file) {
+                Write-Host "Validating PowerShell: $file"
+
+                # Run validation on individual file (ignore exit code to continue validation)
+                try {
+                  $null = & $validatorPath -ScriptPath $file -OutputFormat "JSON" -ExportReport "$outputDir\ps_$($file -replace '[\\\/:]', '_').json" -Quiet -MinimumSeverity "All" -NoFailOnIssues 2>&1
+                  Write-Host "PowerShell validation completed for: $file"
+                } catch {
+                  Write-Host "PowerShell validation encountered issues for: $file (continuing...)"
+                }
+              }
+            }
+
+            # Also run validation on entire repository for comprehensive analysis
+            Write-Host "Running comprehensive PowerShell repository validation..."
+            try {
+              $null = & $validatorPath -ScriptPath "." -OutputFormat "HTML" -ExportReport "$outputDir\ps-comprehensive-report.html" -Quiet -MinimumSeverity "Medium" -NoFailOnIssues 2>&1
+              Write-Host "Comprehensive PowerShell validation completed"
+            } catch {
+              Write-Host "Comprehensive PowerShell validation encountered issues (continuing...)"
+            }
+
+            # Count PowerShell issues by parsing the JSON reports
+            $psCriticalCount = 0
+            $psHighCount = 0
+            $psTotalCount = 0
+
+            # Parse individual PowerShell file reports
+            foreach ($file in $changedPsFiles) {
+              $reportFile = "$outputDir\ps_$($file -replace '[\\\/:]', '_').json"
+              if (Test-Path $reportFile) {
+                try {
+                  $report = Get-Content $reportFile -Raw | ConvertFrom-Json
+                  if ($report -and $report.Count -gt 0) {
+                    $psCriticalCount += ($report | Where-Object { $_.Severity -eq 'Critical' -or $_.Severity -eq 'Error' }).Count
+                    $psHighCount += ($report | Where-Object { $_.Severity -eq 'Warning' -or $_.Severity -eq 'High' }).Count
+                    $psTotalCount += $report.Count
+                  }
+                } catch {
+                  Write-Host "Could not parse PowerShell report for: $file"
+                }
+              }
+            }
+
+            Write-Host "PowerShell validation completed. Critical: $psCriticalCount, High: $psHighCount, Total: $psTotalCount"
+          } else {
+            Write-Host "PowerShell validator script not found at: $validatorPath"
+            $psCriticalCount = 0
+            $psHighCount = 0
+            $psTotalCount = 0
+          }
+        } catch {
+          Write-Host "Error during PowerShell validation: $_"
+          $psCriticalCount = 0
+          $psHighCount = 0
+          $psTotalCount = 0
+        }
+
+        # Set GitHub outputs for PowerShell validation
+        echo "ps-critical-errors=$psCriticalCount" >> $env:GITHUB_OUTPUT
+        echo "ps-high-errors=$psHighCount" >> $env:GITHUB_OUTPUT
+        echo "ps-total-issues=$psTotalCount" >> $env:GITHUB_OUTPUT
+        echo "ps-changed-files=$($changedPsFiles -join ',')" >> $env:GITHUB_OUTPUT
+
+    - name: Run YAML Validation
+      shell: pwsh
+      id: yaml-validation
+      continue-on-error: true
+      run: |
+        try {
+          # Import the YAML validator script
+          $yamlValidatorPath = ".\scripts\validate-yaml.ps1"
+
+          if (Test-Path $yamlValidatorPath) {
+            Write-Host "Running YAML validation using: $yamlValidatorPath"
+
+            # Create output directory
+            $outputDir = ".\validation-results"
+            New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+
+            # Get list of changed YAML files
+            $changedYamlFiles = @()
+            if ("${{ github.event_name }}" -eq "pull_request") {
+              $changedYamlFiles = git diff --name-only origin/${{ github.base_ref }}..HEAD | Where-Object { $_ -match '\.ya?ml$' }
+            } else {
+              $changedYamlFiles = git diff --name-only HEAD~1..HEAD | Where-Object { $_ -match '\.ya?ml$' }
+            }
+
+            Write-Host "Changed YAML files: $($changedYamlFiles -join ', ')"
+
+            # Initialize results
+            $yamlCriticalCount = 0
+            $yamlHighCount = 0
+            $yamlTotalCount = 0
+
+            # Validate each changed YAML file
+            foreach ($file in $changedYamlFiles) {
+              if (Test-Path $file) {
+                Write-Host "Validating YAML: $file"
+
+                # Run validation on individual file (ignore exit code to continue validation)
+                try {
+                  $null = & $yamlValidatorPath -YamlPath $file -OutputFormat "JSON" -ExportReport "$outputDir\yaml_$($file -replace '[\\\/:]', '_').json" -Quiet -MinimumSeverity "All" -NoFailOnIssues 2>&1
+                  Write-Host "YAML validation completed for: $file"
+                } catch {
+                  Write-Host "YAML validation encountered issues for: $file (continuing...)"
+                }
+              }
+            }
+
+            # Also run validation on entire workflows directory for comprehensive analysis
+            Write-Host "Running comprehensive YAML repository validation..."
+            try {
+              $null = & $yamlValidatorPath -YamlPath "workflows" -OutputFormat "HTML" -ExportReport "$outputDir\yaml-comprehensive-report.html" -Quiet -MinimumSeverity "Medium" -NoFailOnIssues 2>&1
+              Write-Host "Comprehensive YAML validation completed"
+            } catch {
+              Write-Host "Comprehensive YAML validation encountered issues (continuing...)"
+            }
+
+            # Count YAML issues by parsing the JSON reports
+            $yamlCriticalCount = 0
+            $yamlHighCount = 0
+            $yamlTotalCount = 0
+
+            # Parse individual YAML file reports
+            foreach ($file in $changedYamlFiles) {
+              $reportFile = "$outputDir\yaml_$($file -replace '[\\\/:]', '_').json"
+              if (Test-Path $reportFile) {
+                try {
+                  $report = Get-Content $reportFile -Raw | ConvertFrom-Json
+                  if ($report -and $report.Issues -and $report.Issues.Count -gt 0) {
+                    $yamlCriticalCount += ($report.Issues | Where-Object { $_.Severity -eq 'Critical' }).Count
+                    $yamlHighCount += ($report.Issues | Where-Object { $_.Severity -eq 'High' }).Count
+                    $yamlTotalCount += $report.Issues.Count
+                  }
+                } catch {
+                  Write-Host "Could not parse YAML report for: $file"
+                }
+              }
+            }
+
+            Write-Host "YAML validation completed. Critical: $yamlCriticalCount, High: $yamlHighCount, Total: $yamlTotalCount"
+          } else {
+            Write-Host "YAML validator script not found at: $yamlValidatorPath"
+            $yamlCriticalCount = 0
+            $yamlHighCount = 0
+            $yamlTotalCount = 0
+          }
+        } catch {
+          Write-Host "Error during YAML validation: $_"
+          $yamlCriticalCount = 0
+          $yamlHighCount = 0
+          $yamlTotalCount = 0
+        }
+
+        # Set GitHub outputs for YAML validation
+        echo "yaml-critical-errors=$yamlCriticalCount" >> $env:GITHUB_OUTPUT
+        echo "yaml-high-errors=$yamlHighCount" >> $env:GITHUB_OUTPUT
+        echo "yaml-total-issues=$yamlTotalCount" >> $env:GITHUB_OUTPUT
+        echo "yaml-changed-files=$($changedYamlFiles -join ',')" >> $env:GITHUB_OUTPUT
+
+    - name: Generate Combined Summary Report
+      shell: pwsh
+      run: |
+        # Create combined summary report
+        $outputDir = ".\validation-results"
+        $combinedSummary = @{
+          Repository = "${{ github.repository }}"
+          Branch = "${{ github.ref_name }}"
+          EventType = "${{ github.event_name }}"
+          Author = "${{ github.actor }}"
+          Commit = "${{ github.sha }}"
+          Timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
+          PowerShell = @{
+            ChangedFiles = "${{ steps.ps-validation.outputs.ps-changed-files }}"
+            Critical = ${{ steps.ps-validation.outputs.ps-critical-errors }}
+            High = ${{ steps.ps-validation.outputs.ps-high-errors }}
+            Total = ${{ steps.ps-validation.outputs.ps-total-issues }}
+          }
+          YAML = @{
+            ChangedFiles = "${{ steps.yaml-validation.outputs.yaml-changed-files }}"
+            Critical = ${{ steps.yaml-validation.outputs.yaml-critical-errors }}
+            High = ${{ steps.yaml-validation.outputs.yaml-high-errors }}
+            Total = ${{ steps.yaml-validation.outputs.yaml-total-issues }}
+          }
+          Combined = @{
+            TotalCritical = ${{ steps.ps-validation.outputs.ps-critical-errors }} + ${{ steps.yaml-validation.outputs.yaml-critical-errors }}
+            TotalHigh = ${{ steps.ps-validation.outputs.ps-high-errors }} + ${{ steps.yaml-validation.outputs.yaml-high-errors }}
+            TotalIssues = ${{ steps.ps-validation.outputs.ps-total-issues }} + ${{ steps.yaml-validation.outputs.yaml-total-issues }}
+          }
+          WorkflowRun = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        }
+
+        $combinedSummary | ConvertTo-Json -Depth 10 | Out-File "$outputDir\combined-validation-summary.json" -Encoding UTF8
+
+        # Set combined outputs
+        $totalCritical = ${{ steps.ps-validation.outputs.ps-critical-errors }} + ${{ steps.yaml-validation.outputs.yaml-critical-errors }}
+        $totalHigh = ${{ steps.ps-validation.outputs.ps-high-errors }} + ${{ steps.yaml-validation.outputs.yaml-high-errors }}
+        $totalIssues = ${{ steps.ps-validation.outputs.ps-total-issues }} + ${{ steps.yaml-validation.outputs.yaml-total-issues }}
+
+        echo "total-critical-errors=$totalCritical" >> $env:GITHUB_OUTPUT
+        echo "total-high-errors=$totalHigh" >> $env:GITHUB_OUTPUT
+        echo "total-issues=$totalIssues" >> $env:GITHUB_OUTPUT
+
+    - name: Upload Validation Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: comprehensive-validation-results-${{ github.run_id }}
+        path: validation-results/
+        retention-days: 30
+
+    - name: Process PR Comment Template
+      if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-total-issues > 0 || steps.yaml-validation.outputs.yaml-total-issues > 0 || steps.ps-validation.outputs.ps-changed-files != '' || steps.yaml-validation.outputs.yaml-changed-files != '')
+      shell: pwsh
+      run: |
+        # Prepare variables for template processing
+        $psCriticalErrors = ${{ steps.ps-validation.outputs.ps-critical-errors }}
+        $psHighErrors = ${{ steps.ps-validation.outputs.ps-high-errors }}
+        $psTotalIssues = ${{ steps.ps-validation.outputs.ps-total-issues }}
+        $psChangedFiles = '${{ steps.ps-validation.outputs.ps-changed-files }}'
+
+        $yamlCriticalErrors = ${{ steps.yaml-validation.outputs.yaml-critical-errors }}
+        $yamlHighErrors = ${{ steps.yaml-validation.outputs.yaml-high-errors }}
+        $yamlTotalIssues = ${{ steps.yaml-validation.outputs.yaml-total-issues }}
+        $yamlChangedFiles = '${{ steps.yaml-validation.outputs.yaml-changed-files }}'
+
+        $totalCritical = $psCriticalErrors + $yamlCriticalErrors
+        $totalHigh = $psHighErrors + $yamlHighErrors
+        $totalIssues = $psTotalIssues + $yamlTotalIssues
+
+        # Determine status
+        $statusIcon = '✅'
+        $statusMessage = 'No issues detected.'
+
+        if ($totalCritical -gt 0) {
+          $statusIcon = '🚨'
+          $statusMessage = 'Critical errors detected - please review immediately.'
+        } elseif ($totalHigh -gt 0) {
+          $statusIcon = '⚠️'
+          $statusMessage = 'High priority issues detected - please review.'
+        } elseif ($totalIssues -gt 0) {
+          $statusIcon = '📝'
+          $statusMessage = 'Minor issues detected - consider addressing for better code quality.'
+        }
+
+        # Prepare file lists
+        $psChangedFilesList = if ($psChangedFiles) {
+          ($psChangedFiles -split ',' | ForEach-Object { "- $_" }) -join "`n"
+        } else {
+          "- No PowerShell files changed"
+        }
+
+        $yamlChangedFilesList = if ($yamlChangedFiles) {
+          ($yamlChangedFiles -split ',' | ForEach-Object { "- $_" }) -join "`n"
+        } else {
+          "- No YAML files changed"
+        }
+
+        # Prepare recommendations
+        $recommendations = @()
+        if ($totalCritical -gt 0) { $recommendations += '🚨 **Priority 1**: Address critical errors to ensure script functionality' }
+        if ($totalHigh -gt 0) { $recommendations += '⚠️ **Priority 2**: Review high priority issues for best practices compliance' }
+        if ($totalIssues -gt 0) { $recommendations += '📝 **General**: Consider addressing remaining issues for improved code quality' }
+        if ($recommendations.Count -eq 0) { $recommendations += '✅ **Great job!** No issues detected in your scripts and YAML files.' }
+
+        # Process template
+        $templateVariables = @{
+          statusIcon = $statusIcon
+          totalCritical = $totalCritical
+          psCriticalErrors = $psCriticalErrors
+          yamlCriticalErrors = $yamlCriticalErrors
+          totalHigh = $totalHigh
+          psHighErrors = $psHighErrors
+          yamlHighErrors = $yamlHighErrors
+          totalIssues = $totalIssues
+          psTotalIssues = $psTotalIssues
+          yamlTotalIssues = $yamlTotalIssues
+          statusMessage = $statusMessage
+          psChangedFilesList = $psChangedFilesList
+          yamlChangedFilesList = $yamlChangedFilesList
+          recommendations = ($recommendations -join "`n")
+          workflowRunUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          powerShellBestPracticesUrl = "https://docs.microsoft.com/en-us/powershell/scripting/developer/cmdlet/cmdlet-overview"
+          runId = "${{ github.run_id }}"
+        }
+
+        .\scripts\process-template.ps1 -TemplatePath ".github\templates\markdown\pr-comment-template.md" -OutputPath "validation-results\pr-comment.md" -Variables $templateVariables
+
+    - name: Comment on PR (Any Issues Found)
+      if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-total-issues > 0 || steps.yaml-validation.outputs.yaml-total-issues > 0 || steps.ps-validation.outputs.ps-changed-files != '' || steps.yaml-validation.outputs.yaml-changed-files != '')
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const comment = require('fs').readFileSync('validation-results/pr-comment.md', 'utf8');
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+    - name: Process Critical Errors Email Template
+      if: github.event_name == 'push' && (steps.ps-validation.outputs.ps-critical-errors > 0 || steps.yaml-validation.outputs.yaml-critical-errors > 0)
+      shell: pwsh
+      run: |
+        # Process critical errors email template
+        $templateVariables = @{
+          repository = "${{ github.repository }}"
+          branch = "${{ github.ref_name }}"
+          commit = "${{ github.sha }}"
+          author = "${{ github.actor }}"
+          timestamp = (Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
+          psCriticalErrors = ${{ steps.ps-validation.outputs.ps-critical-errors }}
+          yamlCriticalErrors = ${{ steps.yaml-validation.outputs.yaml-critical-errors }}
+          psHighErrors = ${{ steps.ps-validation.outputs.ps-high-errors }}
+          yamlHighErrors = ${{ steps.yaml-validation.outputs.yaml-high-errors }}
+          totalIssues = (${{ steps.ps-validation.outputs.ps-total-issues }} + ${{ steps.yaml-validation.outputs.yaml-total-issues }})
+          psChangedFiles = '${{ steps.ps-validation.outputs.ps-changed-files }}'
+          yamlChangedFiles = '${{ steps.yaml-validation.outputs.yaml-changed-files }}'
+          workflowRunUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          commitUrl = "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+        }
+
+        .\scripts\process-template.ps1 -TemplatePath ".github\templates\html\critical-errors-email-template.html" -OutputPath "validation-results\critical-errors-email.html" -Variables $templateVariables
+
+    - name: Send Email Notification (Critical Errors on Commit)
+      if: github.event_name == 'push' && (steps.ps-validation.outputs.ps-critical-errors > 0 || steps.yaml-validation.outputs.yaml-critical-errors > 0)
+      uses: dawidd6/action-send-mail@v3
+      continue-on-error: true
+      with:
+        server_address: ${{ secrets.SMTP_SERVER || 'smtp.company.com' }}
+        server_port: ${{ secrets.SMTP_PORT || '587' }}
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: "🚨 Critical Script/YAML Errors - ${{ github.repository }} - Branch: ${{ github.ref_name }}"
+        to: ${{ github.actor }}@company.com,${{ env.DEV_TEAM_EMAIL }}
+        from: "github-actions@company.com"
+        html_body: ${{ steps.process-critical-email.outputs.html-content }}
+
+    - name: Process PR Issues Email Template
+      if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-high-errors > 0 || steps.yaml-validation.outputs.yaml-high-errors > 0)
+      shell: pwsh
+      run: |
+        # Process PR issues email template
+        $templateVariables = @{
+          repository = "${{ github.repository }}"
+          prNumber = "${{ github.event.number }}"
+          prTitle = "${{ github.event.pull_request.title }}"
+          author = "${{ github.actor }}"
+          branch = "${{ github.head_ref }}"
+          psCriticalErrors = ${{ steps.ps-validation.outputs.ps-critical-errors }}
+          yamlCriticalErrors = ${{ steps.yaml-validation.outputs.yaml-critical-errors }}
+          psHighErrors = ${{ steps.ps-validation.outputs.ps-high-errors }}
+          yamlHighErrors = ${{ steps.yaml-validation.outputs.yaml-high-errors }}
+          totalIssues = (${{ steps.ps-validation.outputs.ps-total-issues }} + ${{ steps.yaml-validation.outputs.yaml-total-issues }})
+          prUrl = "${{ github.event.pull_request.html_url }}"
+          workflowRunUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        }
+
+        .\scripts\process-template.ps1 -TemplatePath ".github\templates\html\pr-issues-email-template.html" -OutputPath "validation-results\pr-issues-email.html" -Variables $templateVariables
+
+    - name: Send Email Notification (High Errors on PR)
+      if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-high-errors > 0 || steps.yaml-validation.outputs.yaml-high-errors > 0)
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: ${{ secrets.SMTP_SERVER }}
+        server_port: ${{ secrets.SMTP_PORT }}
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: "⚠️ Script/YAML Issues in PR #${{ github.event.number }} - ${{ github.repository }}"
+        to: ${{ github.actor }}@company.com,${{ env.REPO_ADMINS }}
+        from: "github-actions@company.com"
+        html_body: ${{ steps.process-pr-email.outputs.html-content }}
+
+    # Workflow completed successfully - No blocking on errors
+    - name: Validation Complete
+      shell: pwsh
+      run: |
+        Write-Host "Comprehensive Script and YAML Validation Workflow Completed Successfully" -ForegroundColor Green
+        Write-Host "PowerShell Critical Errors: ${{ steps.ps-validation.outputs.ps-critical-errors }}" -ForegroundColor $(if (${{ steps.ps-validation.outputs.ps-critical-errors }} -gt 0) { 'Red' } else { 'Green' })
+        Write-Host "PowerShell High Priority Issues: ${{ steps.ps-validation.outputs.ps-high-errors }}" -ForegroundColor $(if (${{ steps.ps-validation.outputs.ps-high-errors }} -gt 0) { 'Yellow' } else { 'Green' })
+        Write-Host "PowerShell Total Issues: ${{ steps.ps-validation.outputs.ps-total-issues }}" -ForegroundColor $(if (${{ steps.ps-validation.outputs.ps-total-issues }} -gt 0) { 'Yellow' } else { 'Green' })
+        Write-Host "YAML Critical Errors: ${{ steps.yaml-validation.outputs.yaml-critical-errors }}" -ForegroundColor $(if (${{ steps.yaml-validation.outputs.yaml-critical-errors }} -gt 0) { 'Red' } else { 'Green' })
+        Write-Host "YAML High Priority Issues: ${{ steps.yaml-validation.outputs.yaml-high-errors }}" -ForegroundColor $(if (${{ steps.yaml-validation.outputs.yaml-high-errors }} -gt 0) { 'Yellow' } else { 'Green' })
+        Write-Host "YAML Total Issues: ${{ steps.yaml-validation.outputs.yaml-total-issues }}" -ForegroundColor $(if (${{ steps.yaml-validation.outputs.yaml-total-issues }} -gt 0) { 'Yellow' } else { 'Green' })
+        Write-Host ""
+        Write-Host "This workflow provides informational feedback and does not block PR merges." -ForegroundColor Cyan
+        Write-Host "Email notifications sent for critical errors on commits to main branches." -ForegroundColor Cyan
+        Write-Host "Detailed reports available as workflow artifacts for 30 days." -ForegroundColor Cyan
