@@ -30,8 +30,6 @@ jobs:
       
     - name: Setup PowerShell
       uses: actions/setup-powershell@v1
-      with:
-        version: '5.1'
         
     - name: Verify Initial Clean State
       shell: pwsh
