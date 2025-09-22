@@ -2,7 +2,7 @@
     # Module manifest for ExampleModule
     RootModule = 'ExampleModule.psm1'
     ModuleVersion = '1.0.0'
-    GUID = 'b2c3d4e5-f6g7-8901-bcde-f23456789012'
+    GUID = 'b2c3d4e5-a6b7-8901-bcde-f23456789012'
     Author = 'PowerShell Profile Manager'
     CompanyName = 'Community'
     Copyright = '(c) 2024. All rights reserved.'
