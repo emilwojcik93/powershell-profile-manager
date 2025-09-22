@@ -43,8 +43,12 @@ $requiredDirs = @(
     "modules",
     "docs",
     ".github\workflows",
-    ".vscode",
     ".cursor"
+)
+
+# Optional directories
+$optionalDirs = @(
+    ".vscode"
 )
 
 $structureValid = $true
@@ -60,7 +64,7 @@ foreach ($file in $requiredFiles) {
     }
 }
 
-# Check directories
+# Check required directories
 foreach ($dir in $requiredDirs) {
     $dirPath = Join-Path $RepositoryRoot $dir
     if (Test-Path $dirPath -PathType Container) {
@@ -68,6 +72,16 @@ foreach ($dir in $requiredDirs) {
     } else {
         Write-Host "ERROR: $dir directory missing" -ForegroundColor Red
         $structureValid = $false
+    }
+}
+
+# Check optional directories
+foreach ($dir in $optionalDirs) {
+    $dirPath = Join-Path $RepositoryRoot $dir
+    if (Test-Path $dirPath -PathType Container) {
+        Write-Host "SUCCESS: $dir directory exists" -ForegroundColor Green
+    } else {
+        Write-Host "INFO: $dir directory not found (optional)" -ForegroundColor Yellow
     }
 }
 
