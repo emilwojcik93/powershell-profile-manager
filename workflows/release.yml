@@ -38,19 +38,10 @@ jobs:
 
     - name: Create Release Package
       shell: pwsh
-      run: |
-        $version = "${{ github.event.inputs.version || '1.0.0' }}"
-        $includeExamples = "${{ github.event.inputs.include_examples }}" -eq "true"
-        
-        # Build argument array to ensure proper parameter passing
-        $argList = @()
-        $argList += "-Version"
-        $argList += $version
-        $argList += "-IncludeExamples"
-        $argList += $includeExamples
-        
-        # Execute with argument array
-        & .\.github\scripts\create-release-package.ps1 @argList
+      env:
+        VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+        INCLUDE_EXAMPLES: ${{ github.event.inputs.include_examples }}
+      run: .\.github\scripts\create-release-package.ps1
 
     - name: Create Release Archive
       shell: pwsh
