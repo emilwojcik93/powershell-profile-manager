@@ -41,7 +41,9 @@ jobs:
       env:
         VERSION: ${{ github.event.inputs.version || '1.0.0' }}
         INCLUDE_EXAMPLES: ${{ github.event.inputs.include_examples }}
-      run: .\.github\scripts\create-release-package.ps1  # Using environment variables
+      run: |
+        # Force refresh - using environment variables instead of parameters
+        .\.github\scripts\create-release-package.ps1
 
     - name: Create Release Archive
       shell: pwsh
