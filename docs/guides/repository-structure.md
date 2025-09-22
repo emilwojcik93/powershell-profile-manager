@@ -156,12 +156,24 @@ GitHub-specific templates for:
 - Follow consistent error handling patterns
 - Use ASCII characters only (no Unicode)
 - Include proper logging and output formatting
+- **MUST support automation parameters** (`-NonInteractive`, `-Unattended`)
 
 ### Module Standards
 - Each module in its own directory
 - Include `.psm1`, `.psd1`, and `README.md`
 - Follow PowerShell module manifest standards
 - Use descriptive function names
+
+### Cursor/Agent Rules
+For comprehensive rules and guidelines for Cursor IDE and AI agents, see:
+- **[Cursor/Agent Rules](cursor-agent-rules.md)** - Complete rules and guidelines
+- **[.cursorrules](../.cursorrules)** - Cursor IDE configuration file
+
+### Path Reference Standards
+- **ALWAYS use relative paths** from repository root
+- **Script paths**: `.\scripts\category\script-name.ps1`
+- **Template paths**: `templates\type\template-name.type`
+- **Module paths**: `modules\ModuleName\ModuleName.psm1`
 
 ## Migration Notes
 

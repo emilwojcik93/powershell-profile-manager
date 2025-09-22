@@ -60,12 +60,64 @@
 - Use proper error handling with `exit 1` for failures
 - Use `Write-Host` with colors for better workflow output
 
-### Repository Structure
-- Keep scripts in `scripts/` subdirectory
-- Keep modules in `modules/` subdirectory with individual folders
-- Keep documentation in `docs/` subdirectory
-- Keep workflows in `.github/workflows/` subdirectory
-- Use consistent naming conventions (PascalCase for functions, kebab-case for files)
+### Repository Structure Rules
+
+#### **MANDATORY Directory Organization**
+- **scripts/**: All PowerShell scripts organized by purpose
+  - `scripts/build/`: Build, packaging, and release scripts
+  - `scripts/deploy/`: Installation, deployment, and configuration scripts
+  - `scripts/test/`: Testing, validation, and quality assurance scripts
+  - `scripts/tools/`: Utility scripts and helper functions
+- **modules/**: PowerShell modules with individual directories
+  - Each module in its own subdirectory
+  - Must contain: `.psm1`, `.psd1`, `README.md`
+- **templates/**: Template files organized by type
+  - `templates/html/`: HTML email templates
+  - `templates/markdown/`: Markdown documentation templates
+  - `templates/powershell/`: PowerShell script templates
+- **docs/**: Documentation organized by purpose
+  - `docs/api/`: API documentation
+  - `docs/examples/`: Usage examples
+  - `docs/guides/`: User guides and tutorials
+- **tests/**: Test files organized by type
+  - `tests/unit/`: Unit tests
+  - `tests/integration/`: Integration tests
+  - `tests/fixtures/`: Test data
+- **.github/workflows/**: GitHub Actions workflows only
+  - NO duplicate workflow directories
+  - Use external scripts instead of inline script blocks
+
+#### **File Naming Standards**
+- **PowerShell scripts**: `Verb-Noun.ps1` (e.g., `Install-Profile.ps1`)
+- **Documentation**: `kebab-case.md` (e.g., `installation-guide.md`)
+- **Templates**: `template-name.type` (e.g., `email-template.html`)
+- **Modules**: `ModuleName.psm1` and `ModuleName.psd1`
+
+#### **Path References**
+- **ALWAYS use relative paths** from repository root
+- **Script paths in workflows**: Use `.\scripts\category\script-name.ps1`
+- **Template paths**: Use `templates\type\template-name.type`
+- **Module paths**: Use `modules\ModuleName\ModuleName.psm1`
+
+#### **Content Organization Rules**
+- **NO inline script blocks** in workflows - use external scripts
+- **NO duplicate directories** - consolidate all content
+- **NO static content** in workflow files - load from external files
+- **ALL templates** must be in dedicated template directories
+- **ALL scripts** must be in appropriate category directories
+
+#### **Workflow Integration**
+- **External Script Loading**: All workflow steps must call external scripts
+- **Template Processing**: Use `scripts/tools/process-template.ps1` for dynamic content
+- **Path Consistency**: All workflows must use new directory structure
+- **No Hardcoded Content**: Load all content from dedicated files
+
+#### **Documentation Requirements**
+- **README.md**: Must reflect current directory structure
+- **Module READMEs**: Required for each module
+- **API Documentation**: Required for all public functions
+- **Usage Examples**: Required for all major features
+- **Migration Guides**: Required for structural changes
 
 ### Security
 - Never hardcode sensitive information

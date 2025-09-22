@@ -154,6 +154,8 @@ ModuleName/
 - [Module Development](docs/module-development.md)
 - [Configuration](docs/configuration.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Repository Structure](docs/guides/repository-structure.md)
+- [Cursor/Agent Rules](docs/guides/cursor-agent-rules.md)
 
 ## 🤝 Contributing
 
