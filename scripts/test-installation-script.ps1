@@ -42,21 +42,37 @@ try {
     
     # Run the installation script with proper error handling
     try {
-        $sourcePath = Split-Path $RepositoryRoot -Parent
-        Write-Host "Running: $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath" -ForegroundColor Gray
+        $sourcePath = $RepositoryRoot
+        Write-Host "Running: $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath -Silent -SkipRestartPrompt" -ForegroundColor Gray
         Write-Host "Source path exists: $(Test-Path $sourcePath)" -ForegroundColor Gray
         Write-Host "Main profile script exists: $(Test-Path (Join-Path $sourcePath 'Microsoft.PowerShell_profile.ps1'))" -ForegroundColor Gray
         Write-Host "Install script exists: $(Test-Path $installScriptPath)" -ForegroundColor Gray
         
         # Test the script syntax first
         Write-Host "Testing script syntax..." -ForegroundColor Gray
-        $syntaxTest = & $installScriptPath -WhatIf 2>&1
-        Write-Host "Syntax test result: $syntaxTest" -ForegroundColor Gray
+        try {
+            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $installScriptPath -Raw), [ref]$null)
+            Write-Host "SUCCESS: Script syntax is valid" -ForegroundColor Green
+        } catch {
+            Write-Host "ERROR: Script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
         
-        $result = & $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath 2>&1
-        $exitCode = $LASTEXITCODE
-        Write-Host "Installation script output: $result" -ForegroundColor Gray
-        Write-Host "Installation script exit code: $exitCode" -ForegroundColor Gray
+        # Create a test profile to avoid modifying the real user profile
+        $testProfilePath = Join-Path $testPath "test-profile.ps1"
+        Set-Content -Path $testProfilePath -Value "# Test Profile" -Encoding UTF8
+        
+        # Run the installation script in silent mode to avoid interactive prompts
+        # Use a temporary environment variable to override the profile path
+        $env:PROFILE = $testProfilePath
+        try {
+            $result = & $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath -Silent -SkipRestartPrompt 2>&1
+            $exitCode = $LASTEXITCODE
+            Write-Host "Installation script output: $result" -ForegroundColor Gray
+            Write-Host "Installation script exit code: $exitCode" -ForegroundColor Gray
+        } finally {
+            Remove-Item Env:PROFILE -ErrorAction SilentlyContinue
+        }
     } catch {
         Write-Host "ERROR: Exception during installation: $($_.Exception.Message)" -ForegroundColor Red
         exit 1

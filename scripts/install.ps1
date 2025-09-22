@@ -1,7 +1,7 @@
 # PowerShell Profile Manager Installation Script
 # This script installs the PowerShell Profile Manager and its modules
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(Mandatory = $false)]
     [string]$InstallPath = "$env:USERPROFILE\PowerShell\ProfileManager",
@@ -22,7 +22,10 @@ param(
     [switch]$SkipInternetCheck,
     
     [Parameter(Mandatory = $false)]
-    [string]$SourcePath
+    [string]$SourcePath,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipRestartPrompt
 )
 
 # Set error action preference
@@ -76,6 +79,11 @@ function Test-CursorEnvironment {
 }
 
 function Get-ProfilePath {
+    # Use environment variable if set (for testing)
+    if ($env:PROFILE) {
+        return $env:PROFILE
+    }
+    
     # Determine the correct profile path based on PowerShell version
     if ($PSVersionTable.PSVersion.Major -ge 6) {
         # PowerShell 7+
@@ -100,18 +108,22 @@ function Install-ProfileManager {
     try {
         if (Test-Path $InstallPath) {
             if ($Force) {
-                Remove-Item -Path $InstallPath -Recurse -Force
-                Write-InstallLog "Removed existing installation directory" "Warning"
+                if ($PSCmdlet.ShouldProcess($InstallPath, "Remove existing installation directory")) {
+                    Remove-Item -Path $InstallPath -Recurse -Force
+                    Write-InstallLog "Removed existing installation directory" "Warning"
+                }
             } else {
                 Write-InstallLog "Installation directory already exists. Use -Force to overwrite." "Warning"
                 return $false
             }
         }
         
-        New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
-        New-Item -ItemType Directory -Path "$InstallPath\modules" -Force | Out-Null
-        New-Item -ItemType Directory -Path "$InstallPath\docs" -Force | Out-Null
-        Write-InstallLog "Created installation directories" "Success"
+        if ($PSCmdlet.ShouldProcess($InstallPath, "Create installation directory")) {
+            New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
+            New-Item -ItemType Directory -Path "$InstallPath\modules" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$InstallPath\docs" -Force | Out-Null
+            Write-InstallLog "Created installation directories" "Success"
+        }
     }
     catch {
         Write-InstallLog "Failed to create installation directory: $($_.Exception.Message)" "Error"
@@ -127,8 +139,10 @@ function Install-ProfileManager {
             # Use local source files
             $sourceProfileScript = Join-Path $SourcePath "Microsoft.PowerShell_profile.ps1"
             if (Test-Path $sourceProfileScript) {
-                Copy-Item -Path $sourceProfileScript -Destination $profileScriptPath -Force
-                Write-InstallLog "Copied main profile script from local source" "Success"
+                if ($PSCmdlet.ShouldProcess($profileScriptPath, "Copy main profile script")) {
+                    Copy-Item -Path $sourceProfileScript -Destination $profileScriptPath -Force
+                    Write-InstallLog "Copied main profile script from local source" "Success"
+                }
             } else {
                 Write-InstallLog "Source profile script not found: $sourceProfileScript" "Error"
                 return $false
@@ -286,11 +300,21 @@ function Configure-Profile {
         # Check if profile manager is already configured
         $profileContent = if (Test-Path $profilePath) { Get-Content $profilePath -Raw } else { "" }
         
+        # Check if this specific installation path is already configured
+        $escapedPath = [regex]::Escape($InstallPath)
+        $isAlreadyConfigured = $profileContent -match "\. '$escapedPath\\Microsoft\.PowerShell_profile\.ps1'"
+        
+        if ($isAlreadyConfigured) {
+            Write-InstallLog "ProfileManager is already configured for this installation path. Skipping configuration." "Info"
+            return $true
+        }
+        
+        # Check if any ProfileManager configuration exists
         if ($profileContent -like "*ProfileManager*") {
             if ($Force) {
                 Write-InstallLog "Removing existing ProfileManager configuration..." "Warning"
-                $profileContent = $profileContent -replace "(?s)# PowerShell Profile Manager.*?\. '$InstallPath.*?\n", ""
-                $profileContent = $profileContent -replace "(?s)\. '$InstallPath.*?\n", ""
+                $profileContent = $profileContent -replace "(?s)# PowerShell Profile Manager.*?\. '.*?\\Microsoft\.PowerShell_profile\.ps1'.*?\n", ""
+                $profileContent = $profileContent -replace "(?s)\. '.*?\\Microsoft\.PowerShell_profile\.ps1'.*?\n", ""
             } else {
                 Write-InstallLog "ProfileManager is already configured. Use -Force to reconfigure." "Warning"
                 return $true
@@ -305,7 +329,9 @@ function Configure-Profile {
 "@
         
         $newProfileContent = $profileContent + $profileManagerConfig
-        Set-Content -Path $profilePath -Value $newProfileContent -Encoding UTF8
+        if ($PSCmdlet.ShouldProcess($profilePath, "Update PowerShell profile")) {
+            Set-Content -Path $profilePath -Value $newProfileContent -Encoding UTF8
+        }
         
         Write-InstallLog "Configured PowerShell profile: $profilePath" "Success"
         return $true
@@ -366,7 +392,7 @@ function Show-InstallationSummary {
     Write-InstallLog "  2. Test installation: Get-ProfileModules" "Info"
     Write-InstallLog "  3. Check module status: Get-ProfileModuleStatus VideoCompressor" "Info"
     
-    if (-not $Silent) {
+    if (-not $Silent -and -not $SkipRestartPrompt) {
         $restart = Read-Host "`nRestart PowerShell now? (y/n)"
         if ($restart -eq 'y' -or $restart -eq 'Y') {
             Write-InstallLog "Restarting PowerShell..." "Info"
