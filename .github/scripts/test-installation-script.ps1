@@ -33,7 +33,7 @@ try {
     # Test installation script execution
     Write-Host "Testing installation script execution..." -ForegroundColor Cyan
     $installScriptPath = Join-Path $RepositoryRoot "scripts\install.ps1"
-    $result = & $installScriptPath -InstallPath $testPath -Silent -Force 2>&1
+    $result = & $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath $RepositoryRoot 2>&1
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "SUCCESS: Installation script runs without errors" -ForegroundColor Green

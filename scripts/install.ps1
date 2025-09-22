@@ -16,7 +16,13 @@ param(
     [string]$RepositoryUrl = "https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main",
     
     [Parameter(Mandatory = $false)]
-    [switch]$Force
+    [switch]$Force,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipInternetCheck,
+    
+    [Parameter(Mandatory = $false)]
+    [string]$SourcePath
 )
 
 # Set error action preference
@@ -83,8 +89,8 @@ function Get-ProfilePath {
 function Install-ProfileManager {
     Write-InstallLog "Starting PowerShell Profile Manager installation..." "Info"
     
-    # Check internet connection
-    if (-not (Test-InternetConnection)) {
+    # Check internet connection (unless skipped)
+    if (-not $SkipInternetCheck -and -not (Test-InternetConnection)) {
         Write-InstallLog "No internet connection available. Cannot download files." "Error"
         return $false
     }
@@ -112,68 +118,105 @@ function Install-ProfileManager {
         return $false
     }
     
-    # Download main profile script
-    Write-InstallLog "Downloading main profile script..." "Info"
+    # Copy/Download main profile script
+    Write-InstallLog "Copying main profile script..." "Info"
     try {
-        $profileScriptUrl = "$RepositoryUrl/Microsoft.PowerShell_profile.ps1"
         $profileScriptPath = Join-Path $InstallPath "Microsoft.PowerShell_profile.ps1"
         
-        Invoke-WebRequest -Uri $profileScriptUrl -OutFile $profileScriptPath -UseBasicParsing
-        Write-InstallLog "Downloaded main profile script" "Success"
+        if ($SourcePath -and (Test-Path $SourcePath)) {
+            # Use local source files
+            $sourceProfileScript = Join-Path $SourcePath "Microsoft.PowerShell_profile.ps1"
+            if (Test-Path $sourceProfileScript) {
+                Copy-Item -Path $sourceProfileScript -Destination $profileScriptPath -Force
+                Write-InstallLog "Copied main profile script from local source" "Success"
+            } else {
+                Write-InstallLog "Source profile script not found: $sourceProfileScript" "Error"
+                return $false
+            }
+        } else {
+            # Download from repository
+            $profileScriptUrl = "$RepositoryUrl/Microsoft.PowerShell_profile.ps1"
+            Invoke-WebRequest -Uri $profileScriptUrl -OutFile $profileScriptPath -UseBasicParsing
+            Write-InstallLog "Downloaded main profile script" "Success"
+        }
     }
     catch {
-        Write-InstallLog "Failed to download main profile script: $($_.Exception.Message)" "Error"
+        Write-InstallLog "Failed to copy/download main profile script: $($_.Exception.Message)" "Error"
         return $false
     }
     
-    # Download installation scripts
-    Write-InstallLog "Downloading installation scripts..." "Info"
+    # Copy/Download installation scripts
+    Write-InstallLog "Copying installation scripts..." "Info"
     try {
         $scriptsDir = Join-Path $InstallPath "scripts"
         New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
         
         $scriptFiles = @("install.ps1", "uninstall.ps1", "release.ps1")
         foreach ($scriptFile in $scriptFiles) {
-            $scriptUrl = "$RepositoryUrl/scripts/$scriptFile"
             $scriptPath = Join-Path $scriptsDir $scriptFile
             
-            try {
-                Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath -UseBasicParsing
-                Write-InstallLog "  Downloaded $scriptFile" "Success"
-            }
-            catch {
-                Write-InstallLog "  Failed to download ${scriptFile}: $($_.Exception.Message)" "Warning"
+            if ($SourcePath -and (Test-Path $SourcePath)) {
+                # Use local source files
+                $sourceScript = Join-Path $SourcePath "scripts\$scriptFile"
+                if (Test-Path $sourceScript) {
+                    Copy-Item -Path $sourceScript -Destination $scriptPath -Force
+                    Write-InstallLog "  Copied $scriptFile from local source" "Success"
+                } else {
+                    Write-InstallLog "  Source script not found: $sourceScript" "Warning"
+                }
+            } else {
+                # Download from repository
+                $scriptUrl = "$RepositoryUrl/scripts/$scriptFile"
+                try {
+                    Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath -UseBasicParsing
+                    Write-InstallLog "  Downloaded $scriptFile" "Success"
+                }
+                catch {
+                    Write-InstallLog "  Failed to download ${scriptFile}: $($_.Exception.Message)" "Warning"
+                }
             }
         }
     }
     catch {
-        Write-InstallLog "Failed to download installation scripts: $($_.Exception.Message)" "Warning"
+        Write-InstallLog "Failed to copy/download installation scripts: $($_.Exception.Message)" "Warning"
     }
     
-    # Download modules
+    # Copy/Download modules
     foreach ($module in $Modules) {
-        Write-InstallLog "Downloading module: $module" "Info"
+        Write-InstallLog "Copying module: $module" "Info"
         try {
             $modulePath = Join-Path $InstallPath "modules\$module"
             New-Item -ItemType Directory -Path $modulePath -Force | Out-Null
             
-            # Download module files
+            # Copy/Download module files
             $moduleFiles = @("$module.psm1", "$module.psd1", "README.md")
             foreach ($file in $moduleFiles) {
-                $fileUrl = "$RepositoryUrl/modules/$module/$file"
                 $filePath = Join-Path $modulePath $file
                 
-                try {
-                    Invoke-WebRequest -Uri $fileUrl -OutFile $filePath -UseBasicParsing
-                    Write-InstallLog "  Downloaded $file" "Success"
-                }
-                catch {
-                    Write-InstallLog "  Failed to download ${file}: $($_.Exception.Message)" "Warning"
+                if ($SourcePath -and (Test-Path $SourcePath)) {
+                    # Use local source files
+                    $sourceFile = Join-Path $SourcePath "modules\$module\$file"
+                    if (Test-Path $sourceFile) {
+                        Copy-Item -Path $sourceFile -Destination $filePath -Force
+                        Write-InstallLog "  Copied $file from local source" "Success"
+                    } else {
+                        Write-InstallLog "  Source file not found: $sourceFile" "Warning"
+                    }
+                } else {
+                    # Download from repository
+                    $fileUrl = "$RepositoryUrl/modules/$module/$file"
+                    try {
+                        Invoke-WebRequest -Uri $fileUrl -OutFile $filePath -UseBasicParsing
+                        Write-InstallLog "  Downloaded $file" "Success"
+                    }
+                    catch {
+                        Write-InstallLog "  Failed to download ${file}: $($_.Exception.Message)" "Warning"
+                    }
                 }
             }
         }
         catch {
-            Write-InstallLog "Failed to download module $module`: $($_.Exception.Message)" "Error"
+            Write-InstallLog "Failed to copy/download module $module`: $($_.Exception.Message)" "Error"
         }
     }
     
