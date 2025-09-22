@@ -31,35 +31,35 @@ jobs:
 
     - name: Test Repository Structure
       shell: pwsh
-      run: .\scripts\validate-repository-structure.ps1
+      run: .\scripts\test\validate-repository-structure.ps1
 
     - name: Test PowerShell Syntax
       shell: pwsh
-      run: .\scripts\validate-powershell-syntax.ps1
+      run: .\scripts\test\validate-powershell-syntax.ps1
 
     - name: Test Module Loading
       shell: pwsh
-      run: .\scripts\test-module-loading.ps1
+      run: .\scripts\test\test-module-loading.ps1
 
     - name: Test Profile Loading
       shell: pwsh
-      run: .\scripts\test-profile-loading.ps1
+      run: .\scripts\test\test-profile-loading.ps1
 
     - name: Test Installation Script
       shell: pwsh
-      run: .\scripts\test-installation-script.ps1
+      run: .\scripts\test\test-installation-script.ps1
 
     - name: Test Uninstallation Script
       shell: pwsh
-      run: .\scripts\test-uninstallation-script.ps1
+      run: .\scripts\test\test-uninstallation-script.ps1
 
     - name: Test Release Script
       shell: pwsh
-      run: .\scripts\test-release-script.ps1
+      run: .\scripts\test\test-release-script.ps1
 
     - name: Generate Test Report
       shell: pwsh
-      run: .\scripts\generate-test-report.ps1 -OutputPath "installation-test-report.json"
+      run: .\scripts\tools\generate-test-report.ps1 -OutputPath "installation-test-report.json"
 
     - name: Upload Test Report
       uses: actions/upload-artifact@v4

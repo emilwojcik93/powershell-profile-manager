@@ -49,7 +49,7 @@ jobs:
       run: |
         try {
           # Import the validator script
-          $validatorPath = ".\scripts\validate-powershell-syntax.ps1"
+          $validatorPath = ".\scripts\test\validate-powershell-syntax.ps1"
 
           if (Test-Path $validatorPath) {
             Write-Host "Running PowerShell validation using: $validatorPath"
@@ -146,7 +146,7 @@ jobs:
       run: |
         try {
           # Import the YAML validator script
-          $yamlValidatorPath = ".\scripts\validate-yaml.ps1"
+          $yamlValidatorPath = ".\scripts\test\validate-yaml.ps1"
 
           if (Test-Path $yamlValidatorPath) {
             Write-Host "Running YAML validation using: $yamlValidatorPath"
@@ -362,7 +362,7 @@ jobs:
           runId = "${{ github.run_id }}"
         }
 
-        .\scripts\process-template.ps1 -TemplatePath ".github\templates\markdown\pr-comment-template.md" -OutputPath "validation-results\pr-comment.md" -Variables $templateVariables
+        .\scripts\tools\process-template.ps1 -TemplatePath "templates\markdown\pr-comment-template.md" -OutputPath "validation-results\pr-comment.md" -Variables $templateVariables
 
     - name: Comment on PR (Any Issues Found)
       if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-total-issues > 0 || steps.yaml-validation.outputs.yaml-total-issues > 0 || steps.ps-validation.outputs.ps-changed-files != '' || steps.yaml-validation.outputs.yaml-changed-files != '')
@@ -400,7 +400,7 @@ jobs:
           commitUrl = "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
         }
 
-        .\scripts\process-template.ps1 -TemplatePath ".github\templates\html\critical-errors-email-template.html" -OutputPath "validation-results\critical-errors-email.html" -Variables $templateVariables
+        .\scripts\tools\process-template.ps1 -TemplatePath "templates\html\critical-errors-email-template.html" -OutputPath "validation-results\critical-errors-email.html" -Variables $templateVariables
 
     - name: Send Email Notification (Critical Errors on Commit)
       if: github.event_name == 'push' && (steps.ps-validation.outputs.ps-critical-errors > 0 || steps.yaml-validation.outputs.yaml-critical-errors > 0)
@@ -436,7 +436,7 @@ jobs:
           workflowRunUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         }
 
-        .\scripts\process-template.ps1 -TemplatePath ".github\templates\html\pr-issues-email-template.html" -OutputPath "validation-results\pr-issues-email.html" -Variables $templateVariables
+        .\scripts\tools\process-template.ps1 -TemplatePath "templates\html\pr-issues-email-template.html" -OutputPath "validation-results\pr-issues-email.html" -Variables $templateVariables
 
     - name: Send Email Notification (High Errors on PR)
       if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-high-errors > 0 || steps.yaml-validation.outputs.yaml-high-errors > 0)

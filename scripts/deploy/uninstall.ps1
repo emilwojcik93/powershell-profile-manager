@@ -323,9 +323,9 @@ function Show-Confirmation {
 try {
     # Initialize logging
     if ($LogPath) {
-        Write-UninstallLog "PowerShell Profile Manager Uninstaller" 'Info'
+        Write-UninstallLog 'PowerShell Profile Manager Uninstaller' 'Info'
         Write-UninstallLog "Log file: $LogPath" 'Info'
-        Write-UninstallLog "Uninstallation started" 'Info'
+        Write-UninstallLog 'Uninstallation started' 'Info'
     }
     
     # Check if ProfileManager is installed

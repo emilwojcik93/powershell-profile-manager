@@ -8,7 +8,7 @@ A structured approach to managing your PowerShell profile with modular component
 
 ```powershell
 # Install the profile manager
-iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1 | iex
 ```
 
 ### Basic Usage
@@ -35,10 +35,14 @@ powershell-profile-manager/
 ├── CONTRIBUTING.md              # Contribution guidelines
 ├── MIGRATION_GUIDE.md           # Migration guide from gist
 ├── Microsoft.PowerShell_profile.ps1  # Main profile loader
-├── scripts/                     # Installation and utility scripts
-│   ├── install.ps1              # Installation script
-│   ├── uninstall.ps1            # Uninstallation script
-│   └── release.ps1              # Release preparation script
+├── scripts/                     # PowerShell scripts
+│   ├── build/                   # Build and packaging scripts
+│   ├── deploy/                  # Installation and deployment scripts
+│   │   ├── install.ps1          # Installation script
+│   │   ├── uninstall.ps1        # Uninstallation script
+│   │   └── release.ps1          # Release preparation script
+│   ├── test/                    # Testing and validation scripts
+│   └── tools/                   # Utility and helper scripts
 ├── modules/                     # Module directory
 │   ├── VideoCompressor/         # Video compression module
 │   │   ├── VideoCompressor.psm1
