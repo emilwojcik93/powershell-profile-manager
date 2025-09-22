@@ -33,9 +33,25 @@ try {
     # Test installation script execution
     Write-Host "Testing installation script execution..." -ForegroundColor Cyan
     $installScriptPath = Join-Path $RepositoryRoot "scripts\install.ps1"
-    $result = & $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath $RepositoryRoot 2>&1
     
-    if ($LASTEXITCODE -eq 0) {
+    # Ensure the install script exists
+    if (-not (Test-Path $installScriptPath)) {
+        Write-Host "ERROR: Install script not found at: $installScriptPath" -ForegroundColor Red
+        exit 1
+    }
+    
+    # Run the installation script with proper error handling
+    try {
+        Write-Host "Running: $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath $RepositoryRoot" -ForegroundColor Gray
+        $result = & $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath $RepositoryRoot 2>&1
+        $exitCode = $LASTEXITCODE
+        Write-Host "Installation script output: $result" -ForegroundColor Gray
+    } catch {
+        Write-Host "ERROR: Exception during installation: $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
+    
+    if ($exitCode -eq 0) {
         Write-Host "SUCCESS: Installation script runs without errors" -ForegroundColor Green
         
         # Verify installation results
@@ -52,7 +68,7 @@ try {
         }
         
     } else {
-        Write-Host "ERROR: Installation script failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "ERROR: Installation script failed with exit code: $exitCode" -ForegroundColor Red
         Write-Host "Output: $result" -ForegroundColor Red
         exit 1
     }

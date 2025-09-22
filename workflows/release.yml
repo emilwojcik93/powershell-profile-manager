@@ -38,7 +38,7 @@ jobs:
 
     - name: Create Release Package
       shell: pwsh
-      run: .\.github\scripts\create-release-package.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}" -IncludeExamples ${{ github.event.inputs.include_examples || 'false' }}
+      run: .\.github\scripts\create-release-package.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}" -IncludeExamples:$${{ github.event.inputs.include_examples == 'true' }}
 
     - name: Create Release Archive
       shell: pwsh
