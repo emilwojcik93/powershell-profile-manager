@@ -1,4 +1,4 @@
-# ExampleModule - Template for PowerShell Profile Modules
+﻿# ExampleModule - Template for PowerShell Profile Modules
 # This module demonstrates best practices for creating profile modules
 
 # Module configuration
@@ -193,10 +193,10 @@ function Test-ExampleFunction {
         
         if ($Passed) {
             $testResults.Passed++
-            Write-Host "✓ $TestName" -ForegroundColor Green
+            Write-Host " $TestName" -ForegroundColor Green
         } else {
             $testResults.Failed++
-            Write-Host "✗ $TestName - $Message" -ForegroundColor Red
+            Write-Host " $TestName - $Message" -ForegroundColor Red
         }
     }
     
@@ -272,3 +272,5 @@ Write-Host "Use Get-ExampleInfo to see module information" -ForegroundColor Yell
 Write-Host "Use Test-ExampleFunction to test module functionality" -ForegroundColor Yellow
 
 # Functions are exported via the .psd1 manifest file
+
+

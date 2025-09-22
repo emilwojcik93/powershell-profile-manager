@@ -19,25 +19,25 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Validate Repository Structure
-      run: .scripts\validate-repository-structure.ps1
+      run: .\scripts\validate-repository-structure.ps1
 
     - name: Test PowerShell Syntax
-      run: .scripts\validate-powershell-syntax.ps1
+      run: .\scripts\validate-powershell-syntax.ps1
 
     - name: Test Module Loading
-      run: .scripts\test-module-loading.ps1
+      run: .\scripts\test-module-loading.ps1
 
     - name: Test Profile Loading
-      run: .scripts\test-profile-loading.ps1
+      run: .\scripts\test-profile-loading.ps1
 
     - name: Test PowerShellMCP Module
-      run: .scripts\test-powershellmcp-module.ps1
+      run: .\scripts\test-powershellmcp-module.ps1
 
     - name: Test VideoCompressor Module
-      run: .scripts\test-videocompressor-module.ps1
+      run: .\scripts\test-videocompressor-module.ps1
 
     - name: Generate Test Report
-      run: .scripts\generate-test-report.ps1 -OutputPath "test-report.json"
+      run: .\scripts\generate-test-report.ps1 -OutputPath "test-report.json"
 
     - name: Upload test report
       uses: actions/upload-artifact@v4

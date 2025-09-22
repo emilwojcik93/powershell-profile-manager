@@ -49,7 +49,7 @@ jobs:
       run: |
         try {
           # Import the validator script
-          $validatorPath = ".\tools\scripts\script-validator\src\PowerShell-Script-Validator.ps1"
+          $validatorPath = ".\scripts\validate-powershell-syntax.ps1"
 
           if (Test-Path $validatorPath) {
             Write-Host "Running PowerShell validation using: $validatorPath"

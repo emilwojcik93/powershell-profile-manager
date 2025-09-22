@@ -9,6 +9,25 @@ $ProfileManagerConfig = @{
     EnableModuleLogging = $true
 }
 
+# Logging function
+function Write-ProfileLog {
+    param(
+        [string]$Message,
+        [ValidateSet("Debug", "Info", "Warning", "Error")]
+        [string]$Level = "Info"
+    )
+    
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logMessage = "[$timestamp] [$Level] $Message"
+    
+    switch ($Level) {
+        "Debug" { if ($ProfileManagerConfig.LogLevel -eq "Debug") { Write-Host $logMessage -ForegroundColor Gray } }
+        "Info" { if ($ProfileManagerConfig.LogLevel -in @("Debug", "Info")) { Write-Host $logMessage -ForegroundColor White } }
+        "Warning" { if ($ProfileManagerConfig.LogLevel -in @("Debug", "Info", "Warning")) { Write-Host $logMessage -ForegroundColor Yellow } }
+        "Error" { Write-Host $logMessage -ForegroundColor Red }
+    }
+}
+
 # Cursor Environment Detection
 function Test-CursorEnvironment {
     <#
@@ -67,23 +86,6 @@ $ProfileModules = @(
 )
 
 # Profile Manager Functions
-function Write-ProfileLog {
-    param(
-        [string]$Message,
-        [ValidateSet("Debug", "Info", "Warning", "Error")]
-        [string]$Level = "Info"
-    )
-    
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logMessage = "[$timestamp] [$Level] $Message"
-    
-    switch ($Level) {
-        "Debug" { if ($ProfileManagerConfig.LogLevel -eq "Debug") { Write-Host $logMessage -ForegroundColor Gray } }
-        "Info" { if ($ProfileManagerConfig.LogLevel -in @("Debug", "Info")) { Write-Host $logMessage -ForegroundColor White } }
-        "Warning" { if ($ProfileManagerConfig.LogLevel -in @("Debug", "Info", "Warning")) { Write-Host $logMessage -ForegroundColor Yellow } }
-        "Error" { Write-Host $logMessage -ForegroundColor Red }
-    }
-}
 
 function Test-ModulePath {
     param([string]$ModuleName)

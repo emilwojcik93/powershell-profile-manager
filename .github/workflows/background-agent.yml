@@ -40,7 +40,7 @@ jobs:
 
     - name: Run Background Agent
       shell: pwsh
-      run: .scripts\background-agent.ps1 -Mode "${{ github.event.inputs.mode || 'full' }}"
+      run: .\scripts\background-agent.ps1 -Mode "${{ github.event.inputs.mode || 'full' }}"
 
   auto-fix:
     runs-on: windows-latest
@@ -55,7 +55,7 @@ jobs:
 
     - name: Auto-Fix Issues
       shell: pwsh
-      run: .scripts\auto-fix-issues.ps1
+      run: .\scripts\auto-fix-issues.ps1
 
   notify:
     runs-on: ubuntu-latest
@@ -68,4 +68,4 @@ jobs:
 
     - name: Notify Results
       shell: pwsh
-      run: .scripts\notify-results.ps1 -Status "${{ needs.background-agent.result }}"
+      run: .\scripts\notify-results.ps1 -Status "${{ needs.background-agent.result }}"

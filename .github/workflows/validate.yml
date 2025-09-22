@@ -17,28 +17,28 @@ jobs:
 
     - name: Validate Repository Structure
       shell: pwsh
-      run: .scripts\validate-repository-structure.ps1
+      run: .\scripts\validate-repository-structure.ps1
 
     - name: Validate PowerShell Syntax
       shell: pwsh
-      run: .scripts\validate-powershell-syntax.ps1
+      run: .\scripts\validate-powershell-syntax.ps1
 
     - name: Test Module Loading
       shell: pwsh
-      run: .scripts\test-module-loading.ps1
+      run: .\scripts\test-module-loading.ps1
 
     - name: Test Profile Loading
       shell: pwsh
-      run: .scripts\test-profile-loading.ps1
+      run: .\scripts\test-profile-loading.ps1
 
     - name: Test PowerShellMCP Module
       shell: pwsh
-      run: .scripts\test-powershellmcp-module.ps1
+      run: .\scripts\test-powershellmcp-module.ps1
 
     - name: Test VideoCompressor Module
       shell: pwsh
-      run: .scripts\test-videocompressor-module.ps1
+      run: .\scripts\test-videocompressor-module.ps1
 
     - name: Generate Validation Report
       shell: pwsh
-      run: .scripts\generate-test-report.ps1 -OutputPath "validation-report.json"
+      run: .\scripts\generate-test-report.ps1 -OutputPath "validation-report.json"
