@@ -1,4 +1,4 @@
-name: PowerShell Script Validator
+﻿name: PowerShell Script Validator
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
     runs-on: windows-latest
     name: Validate PowerShell Scripts
     continue-on-error: true
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -45,14 +45,14 @@ jobs:
         try {
           # Import the validator script
           $validatorPath = ".\tools\scripts\script-validator\src\PowerShell-Script-Validator.ps1"
-          
+
           if (Test-Path $validatorPath) {
             Write-Host "Running PowerShell validation using: $validatorPath"
-            
+
             # Create output directory
             $outputDir = ".\validation-results"
             New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
-            
+
             # Get list of changed PowerShell files
             $changedFiles = @()
             if ("${{ github.event_name }}" -eq "pull_request") {
@@ -60,20 +60,20 @@ jobs:
             } else {
               $changedFiles = git diff --name-only HEAD~1..HEAD | Where-Object { $_ -match '\.ps1$|\.psm1$|\.psd1$' }
             }
-            
+
             Write-Host "Changed PowerShell files: $($changedFiles -join ', ')"
-            
+
             # Initialize results
             $allResults = @()
             $criticalCount = 0
             $highCount = 0
             $totalCount = 0
-            
+
             # Validate each changed file
             foreach ($file in $changedFiles) {
               if (Test-Path $file) {
                 Write-Host "Validating: $file"
-                
+
                 # Run validation on individual file (ignore exit code to continue validation)
                 try {
                   $null = & $validatorPath -ScriptPath $file -OutputFormat "JSON" -ExportReport "$outputDir\$($file -replace '[\\\/:]', '_').json" -Quiet -MinimumSeverity "All" -NoFailOnIssues 2>&1
@@ -83,7 +83,7 @@ jobs:
                 }
               }
             }
-            
+
             # Also run validation on entire repository for comprehensive analysis
             Write-Host "Running comprehensive repository validation..."
             try {
@@ -92,12 +92,12 @@ jobs:
             } catch {
               Write-Host "Comprehensive validation encountered issues (continuing...)"
             }
-            
+
             # Count issues by parsing the JSON reports
             $criticalCount = 0
             $highCount = 0
             $totalCount = 0
-            
+
             # Parse individual file reports
             foreach ($file in $changedFiles) {
               $reportFile = "$outputDir\$($file -replace '[\\\/:]', '_').json"
@@ -114,7 +114,7 @@ jobs:
                 }
               }
             }
-            
+
             Write-Host "Validation completed. Critical: $criticalCount, High: $highCount, Total: $totalCount"
           } else {
             Write-Host "Validator script not found at: $validatorPath"
@@ -128,7 +128,7 @@ jobs:
           $highCount = 0
           $totalCount = 0
         }
-        
+
         # Set GitHub outputs
         echo "critical-errors=$criticalCount" >> $env:GITHUB_OUTPUT
         echo "high-errors=$highCount" >> $env:GITHUB_OUTPUT
@@ -152,10 +152,10 @@ jobs:
           const highErrors = ${{ steps.validation.outputs.high-errors }};
           const totalIssues = ${{ steps.validation.outputs.total-issues }};
           const changedFiles = '${{ steps.validation.outputs.changed-files }}';
-          
+
           let statusIcon = '✅';
           let statusMessage = 'No issues detected.';
-          
+
           if (criticalErrors > 0) {
             statusIcon = '🚨';
             statusMessage = 'Critical errors detected - please review immediately.';
@@ -166,42 +166,42 @@ jobs:
             statusIcon = '📝';
             statusMessage = 'Minor issues detected - consider addressing for better code quality.';
           }
-          
+
           const comment = `## 🔍 PowerShell Script Validation Results ${statusIcon}
-          
+
           **📊 Analysis Summary:**
           - 🚨 Critical Errors: ${criticalErrors}
           - ⚠️ High Priority Issues: ${highErrors}
           - 📊 Total Issues: ${totalIssues}
           - 📄 Files Analyzed: ${changedFiles.split(',').length > 0 ? changedFiles.split(',').length : 'None'}
-          
+
           ### 📋 Status
           ${statusMessage}
-          
+
           ### 📄 Analyzed Files
           ${changedFiles ? changedFiles.split(',').map(f => '- ' + f).join('\\n') : '- No PowerShell files changed'}
-          
+
           ### 📊 Detailed Reports
           Comprehensive validation reports are available as workflow artifacts:
           - 📋 **Individual File Reports**: JSON format for each analyzed file
           - 📄 **Comprehensive HTML Report**: Complete repository analysis
           - 📊 **Summary Report**: JSON format with overall statistics
-          
+
           ### 📝 Recommendations
           ${criticalErrors > 0 ? '🚨 **Priority 1**: Address critical errors to ensure script functionality' : ''}
           ${highErrors > 0 ? '⚠️ **Priority 2**: Review high priority issues for best practices compliance' : ''}
           ${totalIssues > 0 ? '📝 **General**: Consider addressing remaining issues for improved code quality' : '✅ **Great job!** No issues detected in your PowerShell scripts.'}
-          
+
           ### 🔗 Resources
           - [📥 Download Reports (Workflow Artifacts)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           - [📖 PSScriptAnalyzer Rules](https://github.com/PowerShell/PSScriptAnalyzer/tree/master/RuleDocumentation)
           - [📚 PowerShell Best Practices](./tools/scripts/script-validator/docs/BEST-PRACTICES.md)
-          
+
           ---
           *🤖 This is an informational report and will not block your PR. Review the detailed reports for specific recommendations.*
-          
+
           *Generated by PowerShell Script Validator | Run ID: ${{ github.run_id }}*`;
-          
+
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
@@ -239,7 +239,7 @@ jobs:
             <div class="header">
               <h2>🚨 Critical PowerShell Script Errors Detected</h2>
             </div>
-            
+
             <div class="content">
               <h3>📊 Repository Information</h3>
               <ul>
@@ -249,7 +249,7 @@ jobs:
                 <li><strong>Author:</strong> ${{ github.actor }}</li>
                 <li><strong>Timestamp:</strong> $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")</li>
               </ul>
-              
+
               <div class="summary">
                 <h3>📊 Issues Summary</h3>
                 <ul>
@@ -258,19 +258,19 @@ jobs:
                   <li>📊 <strong>Total Issues:</strong> ${{ steps.validation.outputs.total-issues }}</li>
                 </ul>
               </div>
-              
+
               <div class="files">
                 <h3>📄 Affected Files</h3>
                 <p>Changed PowerShell files: ${{ steps.validation.outputs.changed-files }}</p>
               </div>
-              
+
               <h3>⚠️ Action Required</h3>
               <p>Critical errors have been detected in your PowerShell scripts. Please review the detailed validation reports and address these issues to ensure script functionality and security.</p>
-              
+
               <h3>📥 Reports Available</h3>
               <p>Detailed validation reports are available as artifacts in the GitHub Actions workflow run. Download them for specific recommendations and fixes.</p>
             </div>
-            
+
             <div class="footer">
               <p><strong>🔗 Quick Links:</strong></p>
               <ul>
@@ -278,7 +278,7 @@ jobs:
                 <li><a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}">View Commit</a></li>
                 <li><a href="https://github.com/PowerShell/PSScriptAnalyzer/tree/master/RuleDocumentation">PSScriptAnalyzer Rules Documentation</a></li>
               </ul>
-              
+
               <hr>
               <p><em>This is an automated notification from the PowerShell Script Validator. This message is sent to the commit author and the development team for awareness.</em></p>
             </div>
@@ -302,19 +302,19 @@ jobs:
           <p><strong>PR:</strong> #${{ github.event.number }} - ${{ github.event.pull_request.title }}</p>
           <p><strong>Author:</strong> ${{ github.actor }}</p>
           <p><strong>Branch:</strong> ${{ github.head_ref }}</p>
-          
+
           <h3>📊 Summary:</h3>
           <ul>
             <li>🚨 Critical Errors: ${{ steps.validation.outputs.critical-errors }}</li>
             <li>⚠️ High Priority Issues: ${{ steps.validation.outputs.high-errors }}</li>
             <li>📊 Total Issues: ${{ steps.validation.outputs.total-issues }}</li>
           </ul>
-          
+
           <p><strong>📝 Next Steps:</strong> Please review the detailed report and address these issues before merging.</p>
-          
+
           <p><a href="${{ github.event.pull_request.html_url }}">🔗 View Pull Request</a></p>
           <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">🔗 View Workflow Run</a></p>
-          
+
           <hr>
           <p><em>This is an automated message from the PowerShell Script Validator.</em></p>
 
