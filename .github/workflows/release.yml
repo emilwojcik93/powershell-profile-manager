@@ -208,7 +208,7 @@ jobs:
         
         # Update install.ps1 with new repository URL
         $installContent = Get-Content "scripts\install.ps1" -Raw
-        $installContent = $installContent -replace 'https://raw\.githubusercontent\.com/[^/]+/[^/]+/main', "https://raw.githubusercontent.com/${{ github.repository }}/main"
+        $installContent = $installContent -replace 'https://raw\.githubusercontent\.com/[^/]+/[^/]+/main', "https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main"
         Set-Content -Path "scripts\install.ps1" -Value $installContent -Encoding UTF8
         
         Write-Host "Installation URLs updated"

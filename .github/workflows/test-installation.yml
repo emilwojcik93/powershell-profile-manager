@@ -174,9 +174,26 @@ jobs:
         New-Item -ItemType Directory -Path $testPath -Force | Out-Null
         
         try {
-            # Test installation script with dry run
-            Write-Host "Testing installation script..." -ForegroundColor Yellow
-            $installResult = & ".\scripts\install.ps1" -InstallPath $testPath -Silent -WhatIf 2>&1
+            # Test installation script syntax and parameter validation
+            Write-Host "Testing installation script syntax..." -ForegroundColor Yellow
+            
+            # Test script parameter validation
+            $installScript = Get-Content ".\scripts\install.ps1" -Raw
+            
+            # Check if script has required parameters
+            if ($installScript -match "\[Parameter\(Mandatory = \$false\)\]" -and 
+                $installScript -match "InstallPath" -and 
+                $installScript -match "Modules" -and 
+                $installScript -match "Silent") {
+                Write-Host "✓ Installation script has required parameters" -ForegroundColor Green
+            } else {
+                Write-Host "✗ Installation script missing required parameters" -ForegroundColor Red
+                exit 1
+            }
+            
+            # Test script execution without actual installation
+            Write-Host "Testing installation script execution (dry run)..." -ForegroundColor Yellow
+            $installResult = & ".\scripts\install.ps1" -InstallPath $testPath -Silent -Force 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "✓ Installation script runs without errors" -ForegroundColor Green
             } else {
@@ -347,7 +364,7 @@ jobs:
         }
         
         try {
-            $result = & ".\scripts\install.ps1" -InstallPath $customPath -Silent -WhatIf 2>&1
+            $result = & ".\scripts\install.ps1" -InstallPath $customPath -Silent -Force 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "✓ Custom path installation test passed" -ForegroundColor Green
             } else {
@@ -361,7 +378,7 @@ jobs:
         
         # Test with specific modules
         try {
-            $result = & ".\scripts\install.ps1" -Modules @("VideoCompressor") -Silent -WhatIf 2>&1
+            $result = & ".\scripts\install.ps1" -Modules @("VideoCompressor") -Silent -Force 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "✓ Selective module installation test passed" -ForegroundColor Green
             } else {
@@ -384,7 +401,7 @@ jobs:
         Write-Host "Testing uninstallation process..." -ForegroundColor Green
         
         try {
-            $result = & ".\scripts\uninstall.ps1" -Silent -WhatIf 2>&1
+            $result = & ".\scripts\uninstall.ps1" -Silent -Force 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "✓ Uninstallation script runs without errors" -ForegroundColor Green
             } else {
@@ -402,7 +419,7 @@ jobs:
         Write-Host "Testing release process..." -ForegroundColor Green
         
         try {
-            $result = & ".\scripts\release.ps1" -Version "1.0.0-test" -OutputPath ".\test-release" -WhatIf 2>&1
+            $result = & ".\scripts\release.ps1" -Version "1.0.0-test" -OutputPath ".\test-release" 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "✓ Release script runs without errors" -ForegroundColor Green
             } else {

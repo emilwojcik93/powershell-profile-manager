@@ -1,0 +1,373 @@
+name: Validate Scripts and Syntax
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        version: '7.4'
+        
+    - name: Validate PowerShell Syntax
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Validating PowerShell Scripts..." -ForegroundColor Green
+        
+        # Test main profile script
+        Write-Host "`n📄 Testing main profile script..." -ForegroundColor Cyan
+        try {
+            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "Microsoft.PowerShell_profile.ps1" -Raw), [ref]$null)
+            Write-Host "✅ Main profile script syntax is valid" -ForegroundColor Green
+        } catch {
+            Write-Host "❌ Main profile script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+        # Test installation script
+        Write-Host "`n📄 Testing installation script..." -ForegroundColor Cyan
+        try {
+            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "scripts\install.ps1" -Raw), [ref]$null)
+            Write-Host "✅ Installation script syntax is valid" -ForegroundColor Green
+        } catch {
+            Write-Host "❌ Installation script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+        # Test uninstall script
+        Write-Host "`n📄 Testing uninstall script..." -ForegroundColor Cyan
+        try {
+            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "scripts\uninstall.ps1" -Raw), [ref]$null)
+            Write-Host "✅ Uninstall script syntax is valid" -ForegroundColor Green
+        } catch {
+            Write-Host "❌ Uninstall script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+        # Test release script
+        Write-Host "`n📄 Testing release script..." -ForegroundColor Cyan
+        try {
+            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "scripts\release.ps1" -Raw), [ref]$null)
+            Write-Host "✅ Release script syntax is valid" -ForegroundColor Green
+        } catch {
+            Write-Host "❌ Release script syntax error: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+    - name: Validate Module Syntax
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Validating PowerShell Modules..." -ForegroundColor Green
+        
+        $modules = @("VideoCompressor", "PowerShellMCP", "ExampleModule")
+        
+        foreach ($module in $modules) {
+            Write-Host "`n📦 Testing $module module..." -ForegroundColor Cyan
+            
+            $psm1Path = "modules\$module\$module.psm1"
+            $psd1Path = "modules\$module\$module.psd1"
+            
+            # Test .psm1 file
+            try {
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $psm1Path -Raw), [ref]$null)
+                Write-Host "✅ $module.psm1 syntax is valid" -ForegroundColor Green
+            } catch {
+                Write-Host "❌ $module.psm1 syntax error: $($_.Exception.Message)" -ForegroundColor Red
+                exit 1
+            }
+            
+            # Test .psd1 file
+            try {
+                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $psd1Path -Raw), [ref]$null)
+                Write-Host "✅ $module.psd1 syntax is valid" -ForegroundColor Green
+            } catch {
+                Write-Host "❌ $module.psd1 syntax error: $($_.Exception.Message)" -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+    - name: Test Module Loading
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Testing Module Loading..." -ForegroundColor Green
+        
+        $modules = @("VideoCompressor", "PowerShellMCP", "ExampleModule")
+        
+        foreach ($module in $modules) {
+            Write-Host "`n📦 Testing $module module loading..." -ForegroundColor Cyan
+            
+            $modulePath = Join-Path (Get-Location) "modules\$module"
+            
+            try {
+                Import-Module $modulePath -Force -ErrorAction Stop
+                Write-Host "✅ $module module loads successfully" -ForegroundColor Green
+                
+                # Test module functions
+                $moduleInfo = Get-Module $module
+                if ($moduleInfo.ExportedFunctions.Count -gt 0) {
+                    Write-Host "✅ $module exports $($moduleInfo.ExportedFunctions.Count) functions" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠️ $module exports no functions" -ForegroundColor Yellow
+                }
+                
+                Remove-Module $module -Force
+            } catch {
+                Write-Host "❌ $module module failed to load: $($_.Exception.Message)" -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+    - name: Test Script Parameters
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Testing Script Parameters..." -ForegroundColor Green
+        
+        # Test installation script parameters
+        Write-Host "`n📄 Testing installation script parameters..." -ForegroundColor Cyan
+        try {
+            $installScript = Get-Content ".\scripts\install.ps1" -Raw
+            
+            # Check for required parameters
+            $requiredParams = @("InstallPath", "Modules", "Silent", "RepositoryUrl", "Force")
+            foreach ($param in $requiredParams) {
+                if ($installScript -match $param) {
+                    Write-Host "✅ Parameter $param found" -ForegroundColor Green
+                } else {
+                    Write-Host "❌ Parameter $param missing" -ForegroundColor Red
+                    exit 1
+                }
+            }
+        } catch {
+            Write-Host "❌ Installation script parameter test failed: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+        # Test uninstall script parameters
+        Write-Host "`n📄 Testing uninstall script parameters..." -ForegroundColor Cyan
+        try {
+            $uninstallScript = Get-Content ".\scripts\uninstall.ps1" -Raw
+            
+            # Check for required parameters
+            $requiredParams = @("InstallPath", "Silent", "Force", "KeepModules")
+            foreach ($param in $requiredParams) {
+                if ($uninstallScript -match $param) {
+                    Write-Host "✅ Parameter $param found" -ForegroundColor Green
+                } else {
+                    Write-Host "❌ Parameter $param missing" -ForegroundColor Red
+                    exit 1
+                }
+            }
+        } catch {
+            Write-Host "❌ Uninstall script parameter test failed: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+    - name: Test Repository Structure
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Testing Repository Structure..." -ForegroundColor Green
+        
+        # Required files
+        $requiredFiles = @(
+            "Microsoft.PowerShell_profile.ps1",
+            "scripts\install.ps1",
+            "scripts\uninstall.ps1",
+            "scripts\release.ps1",
+            "README.md",
+            "CONTRIBUTING.md",
+            "LICENSE",
+            ".gitignore"
+        )
+        
+        # Required directories
+        $requiredDirs = @(
+            "modules",
+            "docs",
+            ".github\workflows"
+        )
+        
+        # Check files
+        foreach ($file in $requiredFiles) {
+            if (Test-Path $file) {
+                Write-Host "✅ $file exists" -ForegroundColor Green
+            } else {
+                Write-Host "❌ $file missing" -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+        # Check directories
+        foreach ($dir in $requiredDirs) {
+            if (Test-Path $dir -PathType Container) {
+                Write-Host "✅ $dir directory exists" -ForegroundColor Green
+            } else {
+                Write-Host "❌ $dir directory missing" -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+        # Check module structure
+        $modules = @("VideoCompressor", "PowerShellMCP", "ExampleModule")
+        foreach ($module in $modules) {
+            $modulePath = "modules\$module"
+            if (Test-Path $modulePath -PathType Container) {
+                Write-Host "✅ Module $module directory exists" -ForegroundColor Green
+                
+                $moduleFiles = @("$module.psm1", "$module.psd1", "README.md")
+                foreach ($file in $moduleFiles) {
+                    $filePath = Join-Path $modulePath $file
+                    if (Test-Path $filePath) {
+                        Write-Host "✅ $file exists" -ForegroundColor Green
+                    } else {
+                        Write-Host "❌ $file missing" -ForegroundColor Red
+                        exit 1
+                    }
+                }
+            } else {
+                Write-Host "❌ Module $module directory missing" -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+    - name: Test Cursor Environment Detection
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Testing Cursor Environment Detection..." -ForegroundColor Green
+        
+        try {
+            # Load the main profile script to test Cursor detection
+            . ".\Microsoft.PowerShell_profile.ps1"
+            Write-Host "✅ Main profile script loads successfully" -ForegroundColor Green
+            
+            # Test if Cursor detection function exists
+            if (Get-Command Test-CursorEnvironment -ErrorAction SilentlyContinue) {
+                $isCursor = Test-CursorEnvironment
+                Write-Host "✅ Cursor environment detection works (Result: $isCursor)" -ForegroundColor Green
+            } else {
+                Write-Host "❌ Test-CursorEnvironment function not found" -ForegroundColor Red
+                exit 1
+            }
+            
+            # Test profile manager functions
+            $profileFunctions = @(
+                "Get-ProfileModules",
+                "Get-ProfileModuleStatus", 
+                "Get-ProfileManagerStatus",
+                "Load-ProfileModule",
+                "Unload-ProfileModule"
+            )
+            
+            foreach ($func in $profileFunctions) {
+                if (Get-Command $func -ErrorAction SilentlyContinue) {
+                    Write-Host "✅ $func function available" -ForegroundColor Green
+                } else {
+                    Write-Host "❌ $func function not found" -ForegroundColor Red
+                    exit 1
+                }
+            }
+            
+        } catch {
+            Write-Host "❌ Main profile script failed to load: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+    - name: Test PowerShellMCP Module
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Testing PowerShellMCP Module..." -ForegroundColor Green
+        
+        try {
+            Import-Module ".\modules\PowerShellMCP" -Force
+            Write-Host "✅ PowerShellMCP module loads successfully" -ForegroundColor Green
+            
+            # Test MCP functions
+            $mcpFunctions = @(
+                "Start-PowerShellMCPServer",
+                "Stop-PowerShellMCPServer",
+                "Get-PowerShellMCPStatus",
+                "Test-PowerShellMCPConnection",
+                "Get-PowerShellMCPConfig",
+                "Set-PowerShellMCPConfig"
+            )
+            
+            foreach ($func in $mcpFunctions) {
+                if (Get-Command $func -ErrorAction SilentlyContinue) {
+                    Write-Host "✅ $func function available" -ForegroundColor Green
+                } else {
+                    Write-Host "❌ $func function not found" -ForegroundColor Red
+                    exit 1
+                }
+            }
+            
+            # Test MCP configuration
+            $config = Get-PowerShellMCPConfig
+            if ($config -and $config.ServerPort -and $config.ServerHost) {
+                Write-Host "✅ MCP configuration is valid" -ForegroundColor Green
+            } else {
+                Write-Host "❌ MCP configuration is invalid" -ForegroundColor Red
+                exit 1
+            }
+            
+            Remove-Module PowerShellMCP -Force
+        } catch {
+            Write-Host "❌ PowerShellMCP module test failed: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+    - name: Test VideoCompressor Module
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Testing VideoCompressor Module..." -ForegroundColor Green
+        
+        try {
+            Import-Module ".\modules\VideoCompressor" -Force
+            Write-Host "✅ VideoCompressor module loads successfully" -ForegroundColor Green
+            
+            # Test VideoCompressor functions
+            $vcFunctions = @(
+                "Install-FFmpeg",
+                "Get-VideoProperties",
+                "Get-OptimalCompressionSettings",
+                "Get-OutputDirectory",
+                "Compress-Video"
+            )
+            
+            foreach ($func in $vcFunctions) {
+                if (Get-Command $func -ErrorAction SilentlyContinue) {
+                    Write-Host "✅ $func function available" -ForegroundColor Green
+                } else {
+                    Write-Host "❌ $func function not found" -ForegroundColor Red
+                    exit 1
+                }
+            }
+            
+            Remove-Module VideoCompressor -Force
+        } catch {
+            Write-Host "❌ VideoCompressor module test failed: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
+        }
+        
+    - name: Generate Validation Report
+      shell: pwsh
+      run: |
+        Write-Host "`n🎉 All validation tests passed successfully!" -ForegroundColor Green
+        Write-Host "✅ PowerShell syntax validation: PASSED" -ForegroundColor Green
+        Write-Host "✅ Module syntax validation: PASSED" -ForegroundColor Green
+        Write-Host "✅ Module loading test: PASSED" -ForegroundColor Green
+        Write-Host "✅ Script parameters test: PASSED" -ForegroundColor Green
+        Write-Host "✅ Repository structure test: PASSED" -ForegroundColor Green
+        Write-Host "✅ Cursor environment detection: PASSED" -ForegroundColor Green
+        Write-Host "✅ PowerShellMCP module test: PASSED" -ForegroundColor Green
+        Write-Host "✅ VideoCompressor module test: PASSED" -ForegroundColor Green
+        Write-Host "`n🚀 PowerShell Profile Manager is ready for deployment!" -ForegroundColor Cyan
