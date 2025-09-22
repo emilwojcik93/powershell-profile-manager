@@ -18,11 +18,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup PowerShell ${{ matrix.powershell-version }}
-      uses: PowerShell/setup-powershell@v1.3.0
-      with:
-        version: ${{ matrix.powershell-version }}
-        
     - name: Validate repository structure
       run: |
         Write-Host "Validating repository structure..."

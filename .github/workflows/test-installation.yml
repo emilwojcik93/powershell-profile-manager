@@ -29,11 +29,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Setup PowerShell
-      uses: PowerShell/setup-powershell@v1.3.0
-      with:
-        version: ${{ matrix.powershell-version }}
-        
     - name: Test Profile Installation
       shell: pwsh
       run: |
