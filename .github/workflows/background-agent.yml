@@ -42,34 +42,30 @@ jobs:
       shell: pwsh
       run: .\.github\scripts\background-agent.ps1 -Mode "${{ github.event.inputs.mode || 'full' }}"
         
-  auto-fix:
-    runs-on: windows-latest
-    needs: background-agent
-    if: failure()
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        auto-fix:
+          runs-on: windows-latest
+          needs: background-agent
+          if: failure()
+          
+          steps:
+          - name: Checkout repository
+            uses: actions/checkout@v4
+            with:
+              token: ${{ secrets.GITHUB_TOKEN }}
+              
+          - name: Auto-Fix Issues
+            shell: pwsh
+            run: .\.github\scripts\auto-fix-issues.ps1
         
-    - name: Auto-Fix Issues
-      shell: pwsh
-      run: |
-        Write-Host "Attempting to auto-fix detected issues..." -ForegroundColor Cyan
-        
-        # This is where we would implement auto-fix logic
-        # For now, just log that we're in auto-fix mode
-        Write-Host "Auto-fix mode is not fully implemented yet" -ForegroundColor Yellow
-        Write-Host "Manual intervention may be required" -ForegroundColor Yellow
-        
-  notify:
-    runs-on: ubuntu-latest
-    needs: [background-agent]
-    if: always()
-    
-    steps:
-    - name: Notify Results
-      run: |
-        echo "Background agent completed"
-        echo "Status: ${{ needs.background-agent.result }}"
+        notify:
+          runs-on: ubuntu-latest
+          needs: [background-agent]
+          if: always()
+          
+          steps:
+          - name: Checkout repository
+            uses: actions/checkout@v4
+            
+          - name: Notify Results
+            shell: pwsh
+            run: .\.github\scripts\notify-results.ps1 -Status "${{ needs.background-agent.result }}"
