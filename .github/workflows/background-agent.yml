@@ -569,6 +569,14 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         
+<<<<<<< HEAD
+=======
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        version: '7.4'
+        
+>>>>>>> 3dc2b84e08d6d290deefb29df36cac2cc6e01346
     - name: Auto-Fix Issues
       shell: pwsh
       run: |
