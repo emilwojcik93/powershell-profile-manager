@@ -42,8 +42,8 @@ try {
     
     # Run the installation script with proper error handling
     try {
-        Write-Host "Running: $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath $RepositoryRoot" -ForegroundColor Gray
-        $result = & $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath $RepositoryRoot 2>&1
+        Write-Host "Running: $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath (Split-Path $RepositoryRoot -Parent)" -ForegroundColor Gray
+        $result = & $installScriptPath -InstallPath $testPath -Silent -Force -SkipInternetCheck -SourcePath (Split-Path $RepositoryRoot -Parent) 2>&1
         $exitCode = $LASTEXITCODE
         Write-Host "Installation script output: $result" -ForegroundColor Gray
     } catch {
