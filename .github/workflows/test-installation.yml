@@ -29,355 +29,41 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Test Profile Installation
+    - name: Test Repository Structure
       shell: pwsh
-      run: |
-        Write-Host "Testing PowerShell Profile Manager Installation..." -ForegroundColor Green
-        Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)" -ForegroundColor Yellow
-        Write-Host "OS: $($env:OS)" -ForegroundColor Yellow
-        
-        # Test 1: Validate repository structure
-        Write-Host "`n=== Test 1: Repository Structure Validation ===" -ForegroundColor Cyan
-        $requiredFiles = @(
-            "Microsoft.PowerShell_profile.ps1",
-            "scripts\install.ps1",
-            "scripts\uninstall.ps1",
-            "scripts\release.ps1",
-            "README.md",
-            "CONTRIBUTING.md",
-            "LICENSE",
-            ".gitignore"
-        )
-        
-        $requiredDirs = @(
-            "modules",
-            "docs",
-            ".github\workflows"
-        )
-        
-        $structureValid = $true
-        
-        # Check files
-        foreach ($file in $requiredFiles) {
-            if (Test-Path $file) {
-                Write-Host "SUCCESS: $file exists" -ForegroundColor Green
-            } else {
-                Write-Host "ERROR: $file missing" -ForegroundColor Red
-                $structureValid = $false
-            }
-        }
-        
-        # Check directories
-        foreach ($dir in $requiredDirs) {
-            if (Test-Path $dir -PathType Container) {
-                Write-Host "SUCCESS: $dir directory exists" -ForegroundColor Green
-            } else {
-                Write-Host "ERROR: $dir directory missing" -ForegroundColor Red
-                $structureValid = $false
-            }
-        }
-        
-        if (-not $structureValid) {
-            Write-Host "ERROR: Repository structure validation failed" -ForegroundColor Red
-            exit 1
-        }
-        
-        Write-Host "SUCCESS: Repository structure validation passed" -ForegroundColor Green
-        
-        # Test 2: Validate PowerShell syntax
-        Write-Host "`n=== Test 2: PowerShell Syntax Validation ===" -ForegroundColor Cyan
-        
-        $syntaxValid = $true
-        
-        # Test main profile script
-        try {
-            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "Microsoft.PowerShell_profile.ps1" -Raw), [ref]$null)
-            Write-Host "SUCCESS: Main profile script syntax is valid" -ForegroundColor Green
-        } catch {
-            Write-Host "ERROR: Main profile script syntax error: $($_.Exception.Message)" -ForegroundColor Red
-            $syntaxValid = $false
-        }
-        
-        # Test scripts
-        $scripts = @("install.ps1", "uninstall.ps1", "release.ps1")
-        foreach ($script in $scripts) {
-            $scriptPath = "scripts\$script"
-            try {
-                $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $scriptPath -Raw), [ref]$null)
-                Write-Host "SUCCESS: $script syntax is valid" -ForegroundColor Green
-            } catch {
-                Write-Host "ERROR: $script syntax error: $($_.Exception.Message)" -ForegroundColor Red
-                $syntaxValid = $false
-            }
-        }
-        
-        if (-not $syntaxValid) {
-            Write-Host "ERROR: PowerShell syntax validation failed" -ForegroundColor Red
-            exit 1
-        }
-        
-        Write-Host "SUCCESS: PowerShell syntax validation passed" -ForegroundColor Green
-        
-        # Test 3: Test module loading
-        Write-Host "`n=== Test 3: Module Loading Test ===" -ForegroundColor Cyan
-        
-        $loadingValid = $true
-        $modules = @("VideoCompressor", "PowerShellMCP", "ExampleModule")
-        
-        foreach ($module in $modules) {
-            Write-Host "Testing $module module loading..." -ForegroundColor Yellow
-            
-            $modulePath = Join-Path (Get-Location) "modules\$module"
-            
-            try {
-                Import-Module $modulePath -Force -ErrorAction Stop
-                Write-Host "SUCCESS: $module module loads successfully" -ForegroundColor Green
-                
-                # Test module functions
-                $moduleInfo = Get-Module $module
-                if ($moduleInfo.ExportedFunctions.Count -gt 0) {
-                    Write-Host "SUCCESS: $module exports $($moduleInfo.ExportedFunctions.Count) functions" -ForegroundColor Green
-                } else {
-                    Write-Host "WARNING: $module exports no functions" -ForegroundColor Yellow
-                }
-                
-                Remove-Module $module -Force
-            } catch {
-                Write-Host "ERROR: $module module failed to load: $($_.Exception.Message)" -ForegroundColor Red
-                $loadingValid = $false
-            }
-        }
-        
-        if (-not $loadingValid) {
-            Write-Host "ERROR: Module loading test failed" -ForegroundColor Red
-            exit 1
-        }
-        
-        Write-Host "SUCCESS: Module loading test passed" -ForegroundColor Green
-        
-        # Test 4: Test installation script execution
-        Write-Host "`n=== Test 4: Installation Script Test ===" -ForegroundColor Cyan
-        
-        # Create test directory
-        $testPath = "C:\Temp\ProfileManagerTest_$([System.Guid]::NewGuid().ToString('N')[0..7] -join '')"
-        New-Item -ItemType Directory -Path $testPath -Force | Out-Null
-        
-        try {
-            Write-Host "Testing installation script execution..." -ForegroundColor Yellow
-            $installResult = & ".\scripts\install.ps1" -InstallPath $testPath -Silent -Force 2>&1
-            
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "SUCCESS: Installation script runs without errors" -ForegroundColor Green
-                
-                # Verify installation results
-                if (Test-Path "$testPath\Microsoft.PowerShell_profile.ps1") {
-                    Write-Host "SUCCESS: Main profile script was installed" -ForegroundColor Green
-                } else {
-                    Write-Host "WARNING: Main profile script was not installed" -ForegroundColor Yellow
-                }
-                
-                if (Test-Path "$testPath\modules") {
-                    Write-Host "SUCCESS: Modules directory was created" -ForegroundColor Green
-                } else {
-                    Write-Host "WARNING: Modules directory was not created" -ForegroundColor Yellow
-                }
-                
-            } else {
-                Write-Host "ERROR: Installation script failed with exit code: $LASTEXITCODE" -ForegroundColor Red
-                Write-Host "Output: $installResult" -ForegroundColor Red
-                exit 1
-            }
-        } catch {
-            Write-Host "ERROR: Installation script exception: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        } finally {
-            # Cleanup
-            if (Test-Path $testPath) {
-                Remove-Item $testPath -Recurse -Force -ErrorAction SilentlyContinue
-                Write-Host "Test directory cleaned up" -ForegroundColor Yellow
-            }
-        }
-        
-        # Test 5: Test uninstallation script
-        Write-Host "`n=== Test 5: Uninstallation Script Test ===" -ForegroundColor Cyan
-        
-        try {
-            $uninstallResult = & ".\scripts\uninstall.ps1" -Silent -Force 2>&1
-            
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "SUCCESS: Uninstallation script runs without errors" -ForegroundColor Green
-            } else {
-                Write-Host "ERROR: Uninstallation script failed with exit code: $LASTEXITCODE" -ForegroundColor Red
-                Write-Host "Output: $uninstallResult" -ForegroundColor Red
-                exit 1
-            }
-        } catch {
-            Write-Host "ERROR: Uninstallation script exception: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        }
-        
-        # Test 6: Test release script
-        Write-Host "`n=== Test 6: Release Script Test ===" -ForegroundColor Cyan
-        
-        try {
-            $releaseResult = & ".\scripts\release.ps1" -Version "1.0.0-test" -OutputPath ".\test-release" 2>&1
-            
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "SUCCESS: Release script runs without errors" -ForegroundColor Green
-                
-                # Check if release was created
-                if (Test-Path ".\test-release") {
-                    Write-Host "SUCCESS: Release directory was created" -ForegroundColor Green
-                } else {
-                    Write-Host "WARNING: Release directory was not created" -ForegroundColor Yellow
-                }
-                
-            } else {
-                Write-Host "ERROR: Release script failed with exit code: $LASTEXITCODE" -ForegroundColor Red
-                Write-Host "Output: $releaseResult" -ForegroundColor Red
-                exit 1
-            }
-        } catch {
-            Write-Host "ERROR: Release script exception: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        } finally {
-            # Cleanup test release directory
-            if (Test-Path ".\test-release") {
-                Remove-Item ".\test-release" -Recurse -Force -ErrorAction SilentlyContinue
-                Write-Host "Test release directory cleaned up" -ForegroundColor Yellow
-            }
-        }
-        
-        # Test 7: Test Cursor environment detection
-        Write-Host "`n=== Test 7: Cursor Environment Detection Test ===" -ForegroundColor Cyan
-        
-        try {
-            # Load the main profile script to test Cursor detection
-            . ".\Microsoft.PowerShell_profile.ps1"
-            Write-Host "SUCCESS: Main profile script loads successfully" -ForegroundColor Green
-            
-            # Test if Cursor detection function exists
-            if (Get-Command Test-CursorEnvironment -ErrorAction SilentlyContinue) {
-                $isCursor = Test-CursorEnvironment
-                Write-Host "SUCCESS: Cursor environment detection works (Result: $isCursor)" -ForegroundColor Green
-            } else {
-                Write-Host "ERROR: Test-CursorEnvironment function not found" -ForegroundColor Red
-                exit 1
-            }
-            
-            # Test profile manager functions
-            $profileFunctions = @(
-                "Get-ProfileModules",
-                "Get-ProfileModuleStatus", 
-                "Get-ProfileManagerStatus",
-                "Load-ProfileModule",
-                "Unload-ProfileModule",
-                "Reload-ProfileModule",
-                "Unload-AllProfileModules",
-                "Remove-ProfileManager",
-                "Restore-DefaultProfile"
-            )
-            
-            foreach ($func in $profileFunctions) {
-                if (Get-Command $func -ErrorAction SilentlyContinue) {
-                    Write-Host "SUCCESS: $func function available" -ForegroundColor Green
-                } else {
-                    Write-Host "ERROR: $func function not found" -ForegroundColor Red
-                    exit 1
-                }
-            }
-            
-        } catch {
-            Write-Host "ERROR: Main profile script failed to load: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        }
-        
-        # Test 8: Test PowerShellMCP module
-        Write-Host "`n=== Test 8: PowerShellMCP Module Test ===" -ForegroundColor Cyan
-        
-        try {
-            Import-Module ".\modules\PowerShellMCP" -Force
-            Write-Host "SUCCESS: PowerShellMCP module loads successfully" -ForegroundColor Green
-            
-            # Test MCP functions
-            $mcpFunctions = @(
-                "Start-PowerShellMCPServer",
-                "Stop-PowerShellMCPServer",
-                "Get-PowerShellMCPStatus",
-                "Test-PowerShellMCPConnection",
-                "Invoke-PowerShellMCPCommand",
-                "Get-PowerShellMCPConfig",
-                "Set-PowerShellMCPConfig"
-            )
-            
-            foreach ($func in $mcpFunctions) {
-                if (Get-Command $func -ErrorAction SilentlyContinue) {
-                    Write-Host "SUCCESS: $func function available" -ForegroundColor Green
-                } else {
-                    Write-Host "ERROR: $func function not found" -ForegroundColor Red
-                    exit 1
-                }
-            }
-            
-            # Test MCP configuration
-            $config = Get-PowerShellMCPConfig
-            if ($config -and $config.ServerPort -and $config.ServerHost) {
-                Write-Host "SUCCESS: MCP configuration is valid" -ForegroundColor Green
-                Write-Host "Port: $($config.ServerPort)" -ForegroundColor Yellow
-                Write-Host "Host: $($config.ServerHost)" -ForegroundColor Yellow
-                Write-Host "Max Execution Time: $($config.MaxExecutionTime) seconds" -ForegroundColor Yellow
-            } else {
-                Write-Host "ERROR: MCP configuration is invalid" -ForegroundColor Red
-                exit 1
-            }
-            
-            Remove-Module PowerShellMCP -Force
-        } catch {
-            Write-Host "ERROR: PowerShellMCP module test failed: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        }
-        
-        # Test 9: Test VideoCompressor module
-        Write-Host "`n=== Test 9: VideoCompressor Module Test ===" -ForegroundColor Cyan
-        
-        try {
-            Import-Module ".\modules\VideoCompressor" -Force
-            Write-Host "SUCCESS: VideoCompressor module loads successfully" -ForegroundColor Green
-            
-            # Test VideoCompressor functions
-            $vcFunctions = @(
-                "Install-FFmpeg",
-                "Get-VideoProperties",
-                "Get-OptimalCompressionSettings",
-                "Get-OutputDirectory",
-                "Compress-Video"
-            )
-            
-            foreach ($func in $vcFunctions) {
-                if (Get-Command $func -ErrorAction SilentlyContinue) {
-                    Write-Host "SUCCESS: $func function available" -ForegroundColor Green
-                } else {
-                    Write-Host "ERROR: $func function not found" -ForegroundColor Red
-                    exit 1
-                }
-            }
-            
-            Remove-Module VideoCompressor -Force
-        } catch {
-            Write-Host "ERROR: VideoCompressor module test failed: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-        }
-        
-        # Final test report
-        Write-Host "`n=== FINAL TEST REPORT ===" -ForegroundColor Cyan
-        Write-Host "SUCCESS: Repository structure validation: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: PowerShell syntax validation: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: Module loading test: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: Installation script test: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: Uninstallation script test: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: Release script test: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: Cursor environment detection: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: PowerShellMCP module test: PASSED" -ForegroundColor Green
-        Write-Host "SUCCESS: VideoCompressor module test: PASSED" -ForegroundColor Green
-        
-        Write-Host "`nALL TESTS PASSED! PowerShell Profile Manager is ready for deployment!" -ForegroundColor Green
+      run: .\.github\scripts\validate-repository-structure.ps1
+      
+    - name: Test PowerShell Syntax
+      shell: pwsh
+      run: .\.github\scripts\validate-powershell-syntax.ps1
+      
+    - name: Test Module Loading
+      shell: pwsh
+      run: .\.github\scripts\test-module-loading.ps1
+      
+    - name: Test Profile Loading
+      shell: pwsh
+      run: .\.github\scripts\test-profile-loading.ps1
+      
+    - name: Test Installation Script
+      shell: pwsh
+      run: .\.github\scripts\test-installation-script.ps1
+      
+    - name: Test Uninstallation Script
+      shell: pwsh
+      run: .\.github\scripts\test-uninstallation-script.ps1
+      
+    - name: Test Release Script
+      shell: pwsh
+      run: .\.github\scripts\test-release-script.ps1
+      
+    - name: Generate Test Report
+      shell: pwsh
+      run: .\.github\scripts\generate-test-report.ps1 -OutputPath "installation-test-report.json"
+      
+    - name: Upload Test Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: installation-test-report-${{ matrix.powershell-version }}
+        path: installation-test-report.json
+        retention-days: 30

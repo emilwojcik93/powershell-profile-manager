@@ -24,162 +24,98 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Validate repository structure
+    - name: Validate Repository Structure
+      shell: pwsh
+      run: .\.github\scripts\validate-repository-structure.ps1
+      
+    - name: Validate PowerShell Syntax
+      shell: pwsh
+      run: .\.github\scripts\validate-powershell-syntax.ps1
+      
+    - name: Test Module Loading
+      shell: pwsh
+      run: .\.github\scripts\test-module-loading.ps1
+      
+    - name: Create Release Package
+      shell: pwsh
       run: |
-        Write-Host "Validating repository structure..."
+        Write-Host "Creating release package..." -ForegroundColor Green
         
-        $requiredFiles = @(
-          "Microsoft.PowerShell_profile.ps1",
-          "scripts\install.ps1",
-          "scripts\uninstall.ps1",
-          "scripts\release.ps1",
-          "README.md",
-          "CONTRIBUTING.md"
-        )
-        
-        $requiredDirs = @(
-          "modules",
-          "docs"
-        )
-        
-        foreach ($file in $requiredFiles) {
-          if (-not (Test-Path $file)) {
-            Write-Host "ERROR: Required file missing: $file" -ForegroundColor Red
-            exit 1
-          }
-        }
-        
-        foreach ($dir in $requiredDirs) {
-          if (-not (Test-Path $dir -PathType Container)) {
-            Write-Host "ERROR: Required directory missing: $dir" -ForegroundColor Red
-            exit 1
-          }
-        }
-        
-        Write-Host "SUCCESS: Repository structure validation passed" -ForegroundColor Green
-        
-    - name: Validate PowerShell syntax
-      run: |
-        Write-Host "Validating PowerShell syntax..."
-        
-        $scripts = @(
-          "Microsoft.PowerShell_profile.ps1",
-          "scripts\install.ps1",
-          "scripts\uninstall.ps1",
-          "scripts\release.ps1"
-        )
-        
-        foreach ($script in $scripts) {
-          try {
-            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script -Raw), [ref]$null)
-            Write-Host "SUCCESS: $script syntax is valid" -ForegroundColor Green
-          } catch {
-            Write-Host "ERROR: $script syntax error: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-          }
-        }
-        
-        Write-Host "SUCCESS: PowerShell syntax validation passed" -ForegroundColor Green
-        
-    - name: Test module loading
-      run: |
-        Write-Host "Testing module loading..."
-        
-        $modules = @("VideoCompressor", "PowerShellMCP")
-        if (${{ github.event.inputs.include_examples }} -eq 'true') {
-          $modules += "ExampleModule"
-        }
-        
-        foreach ($module in $modules) {
-          $modulePath = "modules\$module"
-          try {
-            Import-Module $modulePath -Force -ErrorAction Stop
-            Write-Host "SUCCESS: $module module loads successfully" -ForegroundColor Green
-            Remove-Module $module -Force
-          } catch {
-            Write-Host "ERROR: $module module failed to load: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
-          }
-        }
-        
-        Write-Host "SUCCESS: Module loading test passed" -ForegroundColor Green
-        
-    - name: Create release package
-      run: |
-        Write-Host "Creating release package..."
-        
-        $version = "${{ github.event.inputs.version || github.ref_name }}"
-        $includeExamples = ${{ github.event.inputs.include_examples }}
+        $version = "${{ github.event.inputs.version || '1.0.0' }}"
+        $includeExamples = "${{ github.event.inputs.include_examples || 'false' }}"
         $releaseDir = "release-v$version"
         
         # Create release directory
         New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
         
         # Copy main files
-        Copy-Item "Microsoft.PowerShell_profile.ps1" $releaseDir
-        Copy-Item "README.md" $releaseDir
-        Copy-Item "CONTRIBUTING.md" $releaseDir
-        Copy-Item "LICENSE" $releaseDir
-        Copy-Item ".gitignore" $releaseDir
+        Copy-Item "Microsoft.PowerShell_profile.ps1" $releaseDir -Force
+        Copy-Item "README.md" $releaseDir -Force
+        Copy-Item "CONTRIBUTING.md" $releaseDir -Force
+        Copy-Item "LICENSE" $releaseDir -Force
+        Copy-Item "MIGRATION_GUIDE.md" $releaseDir -Force
         
         # Copy scripts directory
-        Copy-Item "scripts" $releaseDir -Recurse
+        Copy-Item "scripts" $releaseDir -Recurse -Force
         
-        # Copy modules directory
+        # Copy docs directory
+        Copy-Item "docs" $releaseDir -Recurse -Force
+        
+        # Copy modules (filter out examples if not requested)
         New-Item -ItemType Directory -Path "$releaseDir\modules" -Force | Out-Null
         
-        # Copy real modules
-        Copy-Item "modules\VideoCompressor" "$releaseDir\modules" -Recurse
-        Copy-Item "modules\PowerShellMCP" "$releaseDir\modules" -Recurse
-        
-        # Copy example module if requested
-        if ($includeExamples -eq 'true') {
-          Copy-Item "modules\ExampleModule" "$releaseDir\modules" -Recurse
+        $modules = Get-ChildItem "modules" -Directory
+        foreach ($module in $modules) {
+            if ($module.Name -eq "ExampleModule" -and $includeExamples -eq "false") {
+                Write-Host "Skipping example module: $($module.Name)" -ForegroundColor Yellow
+                continue
+            }
+            Copy-Item $module.FullName "$releaseDir\modules" -Recurse -Force
+            Write-Host "Included module: $($module.Name)" -ForegroundColor Green
         }
         
-        # Copy documentation
-        Copy-Item "docs" $releaseDir -Recurse
+        # Create installer script
+        $installerContent = @"
+# PowerShell Profile Manager Installer
+# Version: $version
+# Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+
+Write-Host "Installing PowerShell Profile Manager v$version..." -ForegroundColor Green
+
+# Download and execute installation script
+try {
+    `$installScript = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/install.ps1" -UseBasicParsing
+    Invoke-Expression `$installScript.Content
+} catch {
+    Write-Host "Failed to download installation script: `$(`$_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
+"@
         
-        Write-Host "SUCCESS: Release package created in $releaseDir" -ForegroundColor Green
+        $installerContent | Out-File -FilePath "$releaseDir\install.ps1" -Encoding UTF8
         
-    - name: Create installer script
+        Write-Host "Release package created: $releaseDir" -ForegroundColor Green
+        
+    - name: Create Release Archive
+      shell: pwsh
       run: |
-        Write-Host "Creating installer script..."
-        
-        $version = "${{ github.event.inputs.version || github.ref_name }}"
-        $releaseDir = "release-v$version"
-        
-        # Read the original install script
-        $installContent = Get-Content "scripts\install.ps1" -Raw
-        
-        # Update repository URL in the script
-        $installContent = $installContent -replace 'https://raw\.githubusercontent\.com/[^/]+/[^/]+/main', "https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main"
-        
-        # Write the updated installer script
-        Set-Content -Path "$releaseDir\install.ps1" -Value $installContent -Encoding UTF8
-        
-        Write-Host "SUCCESS: Installer script created" -ForegroundColor Green
-        
-    - name: Create release archive
-      run: |
-        Write-Host "Creating release archive..."
-        
-        $version = "${{ github.event.inputs.version || github.ref_name }}"
+        $version = "${{ github.event.inputs.version || '1.0.0' }}"
         $releaseDir = "release-v$version"
         $archiveName = "powershell-profile-manager-v$version.zip"
         
         # Create ZIP archive
         Compress-Archive -Path "$releaseDir\*" -DestinationPath $archiveName -Force
         
-        Write-Host "SUCCESS: Release archive created: $archiveName" -ForegroundColor Green
+        Write-Host "Release archive created: $archiveName" -ForegroundColor Green
         
-    - name: Upload release artifacts
+    - name: Upload Release Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: powershell-profile-manager-v${{ github.event.inputs.version || github.ref_name }}
+        name: release-v${{ github.event.inputs.version || '1.0.0' }}
         path: |
-          powershell-profile-manager-v${{ github.event.inputs.version || github.ref_name }}.zip
-          release-v${{ github.event.inputs.version || github.ref_name }}
+          release-v${{ github.event.inputs.version || '1.0.0' }}/
+          powershell-profile-manager-v${{ github.event.inputs.version || '1.0.0' }}.zip
+        retention-days: 30
         
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
@@ -187,69 +123,40 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref_name }}
-        release_name: PowerShell Profile Manager v${{ github.event.inputs.version || github.ref_name }}
+        tag_name: ${{ github.ref }}
+        release_name: PowerShell Profile Manager ${{ github.event.inputs.version || '1.0.0' }}
         body: |
-          ## PowerShell Profile Manager v${{ github.event.inputs.version || github.ref_name }}
+          ## PowerShell Profile Manager ${{ github.event.inputs.version || '1.0.0' }}
           
           ### Installation
           
-          Download the release archive and extract it, then run:
-          
           ```powershell
-          .\install.ps1
-          ```
-          
-          Or install directly from the web:
-          
-          ```powershell
+          # Install the profile manager
           iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/install.ps1 | iex
           ```
           
           ### Features
           
           - Modular PowerShell profile management
-          - VideoCompressor module for video processing
-          - PowerShellMCP module for Cursor IDE integration
-          - Comprehensive installation and uninstallation scripts
-          - Full documentation and examples
+          - Cursor IDE integration with MCP server
+          - Video compression utilities
+          - Comprehensive documentation
+          - Easy installation and uninstallation
           
           ### Changes in this release
           
-          - Initial release with core functionality
-          - Cursor IDE integration and optimization
-          - Background agent for continuous monitoring
-          - Comprehensive testing and validation
+          - See [CHANGELOG.md](CHANGELOG.md) for detailed changes
+          
         draft: false
         prerelease: false
         
-    - name: Upload Release Assets
+    - name: Upload Release Asset
       if: startsWith(github.ref, 'refs/tags/')
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./powershell-profile-manager-v${{ github.event.inputs.version || github.ref_name }}.zip
-        asset_name: powershell-profile-manager-v${{ github.event.inputs.version || github.ref_name }}.zip
+        asset_path: ./powershell-profile-manager-v${{ github.event.inputs.version || '1.0.0' }}.zip
+        asset_name: powershell-profile-manager-v${{ github.event.inputs.version || '1.0.0' }}.zip
         asset_content_type: application/zip
-        
-    - name: Release Summary
-      run: |
-        Write-Host "`n=== RELEASE SUMMARY ===" -ForegroundColor Cyan
-        Write-Host "Version: ${{ github.event.inputs.version || github.ref_name }}" -ForegroundColor Yellow
-        Write-Host "Include Examples: ${{ github.event.inputs.include_examples }}" -ForegroundColor Yellow
-        Write-Host "Release Directory: release-v${{ github.event.inputs.version || github.ref_name }}" -ForegroundColor Yellow
-        Write-Host "Archive: powershell-profile-manager-v${{ github.event.inputs.version || github.ref_name }}.zip" -ForegroundColor Yellow
-        
-        if (Test-Path "release-v${{ github.event.inputs.version || github.ref_name }}") {
-          $releaseSize = (Get-ChildItem "release-v${{ github.event.inputs.version || github.ref_name }}" -Recurse | Measure-Object -Property Length -Sum).Sum
-          Write-Host "Release Size: $([math]::Round($releaseSize / 1MB, 2)) MB" -ForegroundColor Yellow
-        }
-        
-        if (Test-Path "powershell-profile-manager-v${{ github.event.inputs.version || github.ref_name }}.zip") {
-          $archiveSize = (Get-Item "powershell-profile-manager-v${{ github.event.inputs.version || github.ref_name }}.zip").Length
-          Write-Host "Archive Size: $([math]::Round($archiveSize / 1MB, 2)) MB" -ForegroundColor Yellow
-        }
-        
-        Write-Host "`nSUCCESS: Release process completed!" -ForegroundColor Green

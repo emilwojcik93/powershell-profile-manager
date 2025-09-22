@@ -1,0 +1,70 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Tests installation script functionality
+
+.DESCRIPTION
+    This script tests that the installation script runs without errors
+    and creates the expected directory structure.
+
+.PARAMETER RepositoryRoot
+    The root directory of the repository to test
+
+.EXAMPLE
+    .\test-installation-script.ps1 -RepositoryRoot "C:\path\to\repo"
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $false)]
+    [string]$RepositoryRoot = (Get-Location)
+)
+
+$ErrorActionPreference = "Stop"
+
+Write-Host "Testing Installation Script..." -ForegroundColor Green
+
+# Create test directory
+$testPath = "C:\Temp\ProfileManagerTest_$([System.Guid]::NewGuid().ToString('N')[0..7] -join '')"
+New-Item -ItemType Directory -Path $testPath -Force | Out-Null
+
+try {
+    # Test installation script execution
+    Write-Host "Testing installation script execution..." -ForegroundColor Cyan
+    $installScriptPath = Join-Path $RepositoryRoot "scripts\install.ps1"
+    $result = & $installScriptPath -InstallPath $testPath -Silent -Force 2>&1
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "SUCCESS: Installation script runs without errors" -ForegroundColor Green
+        
+        # Verify installation results
+        if (Test-Path "$testPath\Microsoft.PowerShell_profile.ps1") {
+            Write-Host "SUCCESS: Main profile script was installed" -ForegroundColor Green
+        } else {
+            Write-Host "WARNING: Main profile script was not installed" -ForegroundColor Yellow
+        }
+        
+        if (Test-Path "$testPath\modules") {
+            Write-Host "SUCCESS: Modules directory was created" -ForegroundColor Green
+        } else {
+            Write-Host "WARNING: Modules directory was not created" -ForegroundColor Yellow
+        }
+        
+    } else {
+        Write-Host "ERROR: Installation script failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+        Write-Host "Output: $result" -ForegroundColor Red
+        exit 1
+    }
+} catch {
+    Write-Host "ERROR: Installation script exception: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+} finally {
+    # Cleanup
+    if (Test-Path $testPath) {
+        Remove-Item $testPath -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "Test directory cleaned up" -ForegroundColor White
+    }
+}
+
+Write-Host "`nInstallation script test completed successfully!" -ForegroundColor Green
