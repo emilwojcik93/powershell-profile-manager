@@ -1,0 +1,105 @@
+name: repo-agent
+key_value: key_8033adbd9e8f8879709e9bc936b1879fa96d745013fea2947441b99bb08f35ee
+
+# Background Agent Configuration for PowerShell Profile Manager
+# This agent continuously monitors and fixes repository issues
+
+agent:
+  name: "PowerShell Profile Manager Repository Agent"
+  description: "Automated agent to ensure all workflows and scripts work correctly"
+  
+  # Agent behavior configuration
+  behavior:
+    auto_fix: true
+    auto_test: true
+    auto_deploy: true
+    auto_commit: true
+    auto_push: true
+    
+  # Monitoring configuration
+  monitoring:
+    workflows: true
+    scripts: true
+    modules: true
+    documentation: true
+    dependencies: true
+    
+  # Event triggers
+  triggers:
+    - push
+    - pull_request
+    - workflow_failure
+    - script_error
+    - syntax_error
+    - test_failure
+    - deployment_failure
+    
+  # Continuous tasks
+  tasks:
+    - name: "validate_syntax"
+      frequency: "on_change"
+      command: "Test-Repository"
+      
+    - name: "run_workflows"
+      frequency: "on_push"
+      command: "gh workflow run validate.yml"
+      
+    - name: "test_installation"
+      frequency: "on_change"
+      command: "gh workflow run test-installation.yml"
+      
+    - name: "check_dependencies"
+      frequency: "daily"
+      command: "Test-ModuleDependencies"
+      
+    - name: "update_documentation"
+      frequency: "on_change"
+      command: "Update-Documentation"
+      
+  # Fix strategies
+  fix_strategies:
+    syntax_errors:
+      - "Fix PowerShell syntax errors automatically"
+      - "Update module manifests if needed"
+      - "Correct parameter definitions"
+      
+    workflow_failures:
+      - "Update GitHub Actions configurations"
+      - "Fix runner compatibility issues"
+      - "Update PowerShell versions"
+      
+    test_failures:
+      - "Fix test scripts"
+      - "Update test data"
+      - "Correct module loading issues"
+      
+    documentation_issues:
+      - "Update README files"
+      - "Sync documentation with code changes"
+      - "Fix broken links and references"
+      
+  # Success criteria
+  success_criteria:
+    - "All workflows pass"
+    - "All scripts have valid syntax"
+    - "All modules load correctly"
+    - "Installation script works"
+    - "Uninstallation script works"
+    - "Release script works"
+    - "Documentation is up to date"
+    - "No linting errors"
+    
+  # Notification settings
+  notifications:
+    success: true
+    failure: true
+    progress: false
+    
+  # Limits and safety
+  limits:
+    max_commits_per_hour: 50
+    max_workflow_runs_per_hour: 40
+    timeout_minutes: 60
+    
+  # Working directory
+  working_directory: "/home/runner/work/powershell-profile-manager/powershell-profile-manager"

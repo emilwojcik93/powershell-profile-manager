@@ -72,6 +72,7 @@ powershell-profile-manager/
 - **Clean Uninstall**: Complete removal with profile restoration
 - **Documentation**: Comprehensive docs for each module
 - **Release Management**: Automated release preparation
+- **Background Agent**: Continuous monitoring and auto-fixing via Cursor agent
 
 ## 📦 Available Modules
 

@@ -126,3 +126,57 @@
 - Use proper help text for all functions
 - Use examples in documentation
 - Use proper module structure for easy discovery
+
+## Background Agent Integration
+
+### Agent Configuration
+- Background agent runs continuously to monitor repository health
+- Agent key: key_8033adbd9e8f8879709e9bc936b1879fa96d745013fea2947441b99bb08f35ee
+- Agent name: repo-agent
+- Monitors workflows, scripts, modules, and documentation
+
+### Agent Tasks
+- Validates PowerShell syntax automatically
+- Tests module loading and functionality
+- Runs installation/uninstallation tests
+- Monitors GitHub Actions workflows
+- Updates documentation when needed
+- Fixes issues automatically when possible
+
+### Agent Triggers
+- Push events to main/develop branches
+- Pull request creation and updates
+- Workflow failures
+- Script syntax errors
+- Module loading failures
+- Test failures
+
+### Agent Success Criteria
+- All workflows pass successfully
+- All scripts have valid PowerShell syntax
+- All modules load without errors
+- Installation script works correctly
+- Uninstallation script works correctly
+- Release script works correctly
+- Documentation is synchronized with code
+- No linting or syntax errors
+
+### Agent Safety Limits
+- Maximum 10 commits per hour
+- Maximum 20 workflow runs per hour
+- 30-minute timeout for operations
+- Auto-fix only for safe operations
+- Manual intervention required for complex issues
+
+### Working with the Agent
+- Agent runs automatically on repository changes
+- Monitor agent status in GitHub Actions
+- Agent logs provide detailed information about issues
+- Failed runs trigger auto-fix attempts when possible
+- Agent notifications show success/failure status
+
+### Agent Monitoring
+- Check `.github/workflows/background-agent.yml` for agent status
+- Review agent logs for detailed error information
+- Monitor workflow runs for continuous health checks
+- Agent runs every hour automatically via cron schedule
