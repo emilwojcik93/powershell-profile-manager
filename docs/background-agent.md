@@ -9,7 +9,7 @@ The background agent is configured using Cursor's background agent functionality
 ## Agent Configuration
 
 - **Agent Name**: repo-agent
-- **Agent Key**: key_8033adbd9e8f8879709e9bc936b1879fa96d745013fea2947441b99bb08f35ee
+- **Agent Key**: Stored securely in GitHub secrets as `CURSOR_AGENT_KEY`
 - **Configuration File**: `.cursor/agent.yml`
 - **Workflow File**: `.github/workflows/background-agent.yml`
 

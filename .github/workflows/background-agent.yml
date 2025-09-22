@@ -46,7 +46,7 @@ jobs:
     - name: Initialize Agent
       shell: pwsh
       run: |
-        Write-Host "🤖 Initializing Background Agent..." -ForegroundColor Cyan
+        Write-Host "Initializing Background Agent..." -ForegroundColor Cyan
         Write-Host "PowerShell Version: $($PSVersionTable.PSVersion)" -ForegroundColor Yellow
         Write-Host "Agent Mode: ${{ github.event.inputs.mode || 'full' }}" -ForegroundColor Yellow
         Write-Host "Runner OS: $($env:RUNNER_OS)" -ForegroundColor Yellow
@@ -63,11 +63,11 @@ jobs:
             param([string]$Message, [string]$Level = "Info")
             $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             $emoji = switch ($Level) {
-                "Error" { "❌" }
-                "Warning" { "⚠️" }
-                "Success" { "✅" }
-                "Fix" { "🔧" }
-                default { "ℹ️" }
+                "Error" { "ERROR" }
+                "Warning" { "WARN" }
+                "Success" { "SUCCESS" }
+                "Fix" { "FIX" }
+                default { "INFO" }
             }
             Write-Host "[$timestamp] $emoji $Message" -ForegroundColor $(
                 switch ($Level) {
@@ -85,7 +85,7 @@ jobs:
     - name: Validate Repository Structure
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Validating repository structure..." "Info"
+        Write-AgentLog "Validating repository structure..." "Info"
         
         $requiredFiles = @(
             "Microsoft.PowerShell_profile.ps1",
@@ -166,7 +166,7 @@ jobs:
     - name: Validate PowerShell Syntax
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Validating PowerShell syntax..." "Info"
+        Write-AgentLog "Validating PowerShell syntax..." "Info"
         
         $syntaxValid = $true
         
@@ -229,7 +229,7 @@ jobs:
     - name: Test Module Loading
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Testing module loading..." "Info"
+        Write-AgentLog "Testing module loading..." "Info"
         
         $loadingValid = $true
         $modules = @("VideoCompressor", "PowerShellMCP", "ExampleModule")
@@ -274,7 +274,7 @@ jobs:
     - name: Test Main Profile Loading
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Testing main profile loading..." "Info"
+        Write-AgentLog "Testing main profile loading..." "Info"
         
         try {
             # Load the main profile script to test Cursor detection
@@ -323,7 +323,7 @@ jobs:
     - name: Test PowerShellMCP Module
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Testing PowerShellMCP module..." "Info"
+        Write-AgentLog "Testing PowerShellMCP module..." "Info"
         
         try {
             Import-Module ".\modules\PowerShellMCP" -Force
@@ -373,7 +373,7 @@ jobs:
     - name: Test VideoCompressor Module
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Testing VideoCompressor module..." "Info"
+        Write-AgentLog "Testing VideoCompressor module..." "Info"
         
         try {
             Import-Module ".\modules\VideoCompressor" -Force
@@ -408,7 +408,7 @@ jobs:
     - name: Test Installation Script
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Testing installation script..." "Info"
+        Write-AgentLog "Testing installation script..." "Info"
         
         # Create test directory
         $testPath = "C:\Temp\ProfileManagerTest_$([System.Guid]::NewGuid().ToString('N')[0..7] -join '')"
@@ -456,7 +456,7 @@ jobs:
     - name: Test Uninstallation Script
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Testing uninstallation script..." "Info"
+        Write-AgentLog "Testing uninstallation script..." "Info"
         
         try {
             $result = & ".\scripts\uninstall.ps1" -Silent -Force 2>&1
@@ -477,7 +477,7 @@ jobs:
     - name: Test Release Script
       shell: pwsh
       run: |
-        Write-AgentLog "🔍 Testing release script..." "Info"
+        Write-AgentLog "Testing release script..." "Info"
         
         try {
             $result = & ".\scripts\release.ps1" -Version "1.0.0-test" -OutputPath ".\test-release" 2>&1
@@ -512,7 +512,7 @@ jobs:
     - name: Generate Agent Report
       shell: pwsh
       run: |
-        Write-AgentLog "📊 Generating agent report..." "Info"
+        Write-AgentLog "Generating agent report..." "Info"
         
         Write-Host "`n" -NoNewline
         Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
@@ -582,7 +582,7 @@ jobs:
     - name: Auto-Fix Issues
       shell: pwsh
       run: |
-        Write-Host "🔧 Attempting to auto-fix detected issues..." -ForegroundColor Cyan
+        Write-Host "Attempting to auto-fix detected issues..." -ForegroundColor Cyan
         
         # This is where we would implement auto-fix logic
         # For now, just log that we're in auto-fix mode

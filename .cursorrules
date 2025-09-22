@@ -131,7 +131,7 @@
 
 ### Agent Configuration
 - Background agent runs continuously to monitor repository health
-- Agent key: key_8033adbd9e8f8879709e9bc936b1879fa96d745013fea2947441b99bb08f35ee
+- Agent key: Stored securely in GitHub secrets as CURSOR_AGENT_KEY
 - Agent name: repo-agent
 - Monitors workflows, scripts, modules, and documentation
 
@@ -180,3 +180,71 @@
 - Review agent logs for detailed error information
 - Monitor workflow runs for continuous health checks
 - Agent runs every hour automatically via cron schedule
+
+## PowerShell Development Standards
+
+### Variable Syntax with Special Characters
+- **ALWAYS use bracket notation**: `${var}:` instead of `$var:` for special characters
+- **Path handling**: Use `"${var}.exe"` instead of `"$var.exe"`
+- **Special characters**: Use `${var}%` instead of `$var%`
+- **Bracket notation**: Always use `${variable}` when variable is near special characters
+- **Examples**:
+  ```powershell
+  # CORRECT
+  $path = "${env:TEMP}\file.txt"
+  $url = "https://${host}:${port}/api"
+  $command = "${exe} --config=${config}"
+  
+  # INCORRECT - Can cause syntax errors
+  $path = "$env:TEMP\file.txt"
+  $url = "https://$host:$port/api"
+  $command = "$exe --config=$config"
+  ```
+
+### UTF-8/ASCII Compliance
+- **NO Unicode characters**: Use ASCII only in all source files
+- **NO emojis**: Use text descriptions instead
+- **Examples**:
+  ```powershell
+  # CORRECT
+  Write-Host "Starting installation..." -ForegroundColor Green
+  Write-Host "Installation completed successfully" -ForegroundColor Green
+  
+  # INCORRECT
+  Write-Host "🚀 Starting installation..." -ForegroundColor Green
+  Write-Host "✅ Installation completed successfully" -ForegroundColor Green
+  ```
+
+### Error Handling Standards
+- Use `-ErrorAction Stop` for critical operations
+- Implement try-catch blocks for all major operations
+- Use `Write-Host` with explicit `-ForegroundColor` for better visibility
+- Include comprehensive parameter validation
+- Use proper PowerShell 5.x compatible syntax
+
+### Module Development
+- Each module must have `.psm1` and `.psd1` files
+- Use `[CmdletBinding()]` for advanced function features
+- Include comprehensive help documentation
+- Use `Export-ModuleMember` to explicitly export functions
+- Include proper parameter validation with `[Parameter()]` attributes
+
+### Cursor IDE Integration
+- Detect Cursor environment using `Test-CursorEnvironment` function
+- Optimize profile loading for agent sessions (disable heavy prompts)
+- Use MCP server for secure command execution
+- Implement proper terminal behavior to avoid hanging issues
+
+### Infrastructure as Code Principles
+- All scripts must be self-contained and executable without manual intervention
+- Use WinUtil-style self-elevation for admin operations
+- No static assets - everything must be dynamically generated or configurable
+- Test scripts in both interactive and silent modes
+- Include comprehensive logging and error handling
+
+### GitHub Actions Compatibility
+- Use correct action references (actions/setup-powershell@v1)
+- Include proper error handling and logging
+- Use ASCII characters only in workflow files
+- Implement proper timeout and resource management
+- Include comprehensive testing and validation steps
