@@ -51,21 +51,35 @@ function Test-CursorEnvironment {
     .DESCRIPTION
     Checks for Cursor-specific environment variables to determine if the session
     is running within Cursor IDE, which can be used to optimize profile loading
-    for agent sessions.
+    for agent sessions. Distinguishes between Cursor IDE and Windows Terminal.
     
     .OUTPUTS
     [bool] Returns $true if running in Cursor environment, $false otherwise
     #>
     
+    # Check for Cursor-specific indicators
     $cursorIndicators = @(
         $env:CURSOR_TRACE_ID,
+        $env:CURSOR_AGENT
+    )
+    
+    # Check for VS Code indicators (Cursor is based on VS Code)
+    $vscodeIndicators = @(
         $env:VSCODE_GIT_ASKPASS_MAIN,
         $env:VSCODE_GIT_IPC_HANDLE,
         $env:VSCODE_GIT_ASKPASS_NODE,
         $env:VSCODE_INJECTION
     )
     
-    return ($cursorIndicators | Where-Object { $_ -ne $null }).Count -gt 0
+    # Check if we're in Windows Terminal (which would be false positive)
+    $isWindowsTerminal = $env:WT_SESSION -ne $null -and $env:CURSOR_TRACE_ID -eq $null
+    
+    # We're in Cursor if we have Cursor-specific indicators OR VS Code indicators
+    # but NOT if we're in Windows Terminal without Cursor indicators
+    $hasCursorIndicators = ($cursorIndicators | Where-Object { $_ -ne $null }).Count -gt 0
+    $hasVscodeIndicators = ($vscodeIndicators | Where-Object { $_ -ne $null }).Count -gt 0
+    
+    return ($hasCursorIndicators -or $hasVscodeIndicators) -and -not $isWindowsTerminal
 }
 
 # Detect Cursor environment and optimize accordingly
@@ -181,13 +195,31 @@ function Reload-ProfileModule {
 }
 
 function Get-ProfileModules {
-    return $ProfileModules | Where-Object { $_.Enabled } | Select-Object Name, Description, @{
-        Name       = 'Loaded'
-        Expression = { (Get-Module -Name $_.Name -ErrorAction SilentlyContinue) -ne $null }
-    }, @{
-        Name       = 'Available'
-        Expression = { Test-ModulePath -ModuleName $_.Name }
+    $enabledModules = $ProfileModules | Where-Object { $_.Enabled }
+    
+    if ($enabledModules.Count -eq 0) {
+        Write-Host "No modules are currently enabled." -ForegroundColor Yellow
+        return
     }
+    
+    # Create a simple table output
+    Write-Host "`nProfile Manager Modules:" -ForegroundColor Green
+    Write-Host "========================" -ForegroundColor Green
+    
+    foreach ($module in $enabledModules) {
+        $isLoaded = (Get-Module -Name $module.Name -ErrorAction SilentlyContinue) -ne $null
+        $isAvailable = Test-ModulePath -ModuleName $module.Name
+        
+        $loadedStatus = if ($isLoaded) { "Yes" } else { "No" }
+        $availableStatus = if ($isAvailable) { "Yes" } else { "No" }
+        
+        Write-Host "`nModule: $($module.Name)" -ForegroundColor Cyan
+        Write-Host "  Description: $($module.Description)" -ForegroundColor White
+        Write-Host "  Loaded: $loadedStatus" -ForegroundColor $(if ($isLoaded) { "Green" } else { "Red" })
+        Write-Host "  Available: $availableStatus" -ForegroundColor $(if ($isAvailable) { "Green" } else { "Red" })
+    }
+    
+    Write-Host ""
 }
 
 function Get-ProfileModuleStatus {
