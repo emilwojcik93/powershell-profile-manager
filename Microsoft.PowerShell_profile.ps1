@@ -198,28 +198,44 @@ function Get-ProfileModules {
     $enabledModules = $ProfileModules | Where-Object { $_.Enabled }
     
     if ($enabledModules.Count -eq 0) {
-        Write-Host "No modules are currently enabled." -ForegroundColor Yellow
+        Write-Host 'No modules are currently enabled.' -ForegroundColor Yellow
         return
     }
     
     # Create a simple table output
     Write-Host "`nProfile Manager Modules:" -ForegroundColor Green
-    Write-Host "========================" -ForegroundColor Green
+    Write-Host '========================' -ForegroundColor Green
     
     foreach ($module in $enabledModules) {
         $isLoaded = (Get-Module -Name $module.Name -ErrorAction SilentlyContinue) -ne $null
         $isAvailable = Test-ModulePath -ModuleName $module.Name
         
-        $loadedStatus = if ($isLoaded) { "Yes" } else { "No" }
-        $availableStatus = if ($isAvailable) { "Yes" } else { "No" }
+        $loadedStatus = if ($isLoaded) {
+            'Yes' 
+        } else {
+            'No' 
+        }
+        $availableStatus = if ($isAvailable) {
+            'Yes' 
+        } else {
+            'No' 
+        }
         
         Write-Host "`nModule: $($module.Name)" -ForegroundColor Cyan
         Write-Host "  Description: $($module.Description)" -ForegroundColor White
-        Write-Host "  Loaded: $loadedStatus" -ForegroundColor $(if ($isLoaded) { "Green" } else { "Red" })
-        Write-Host "  Available: $availableStatus" -ForegroundColor $(if ($isAvailable) { "Green" } else { "Red" })
+        Write-Host "  Loaded: $loadedStatus" -ForegroundColor $(if ($isLoaded) {
+                'Green' 
+            } else {
+                'Red' 
+            })
+        Write-Host "  Available: $availableStatus" -ForegroundColor $(if ($isAvailable) {
+                'Green' 
+            } else {
+                'Red' 
+            })
     }
     
-    Write-Host ""
+    Write-Host ''
 }
 
 function Get-ProfileModuleStatus {
