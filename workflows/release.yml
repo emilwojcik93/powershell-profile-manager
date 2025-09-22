@@ -40,12 +40,17 @@ jobs:
       shell: pwsh
       run: |
         $version = "${{ github.event.inputs.version || '1.0.0' }}"
-        $includeExamples = "${{ github.event.inputs.include_examples }}"
-        if ($includeExamples -eq "true") {
-          .\.github\scripts\create-release-package.ps1 -Version $version -IncludeExamples:$$true
-        } else {
-          .\.github\scripts\create-release-package.ps1 -Version $version -IncludeExamples:$$false
-        }
+        $includeExamples = "${{ github.event.inputs.include_examples }}" -eq "true"
+        
+        # Build argument array to ensure proper parameter passing
+        $argList = @()
+        $argList += "-Version"
+        $argList += $version
+        $argList += "-IncludeExamples"
+        $argList += $includeExamples
+        
+        # Execute with argument array
+        & .\.github\scripts\create-release-package.ps1 @argList
 
     - name: Create Release Archive
       shell: pwsh

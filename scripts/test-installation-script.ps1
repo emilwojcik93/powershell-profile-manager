@@ -46,6 +46,12 @@ try {
         Write-Host "Running: $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath" -ForegroundColor Gray
         Write-Host "Source path exists: $(Test-Path $sourcePath)" -ForegroundColor Gray
         Write-Host "Main profile script exists: $(Test-Path (Join-Path $sourcePath 'Microsoft.PowerShell_profile.ps1'))" -ForegroundColor Gray
+        Write-Host "Install script exists: $(Test-Path $installScriptPath)" -ForegroundColor Gray
+        
+        # Test the script syntax first
+        Write-Host "Testing script syntax..." -ForegroundColor Gray
+        $syntaxTest = & $installScriptPath -WhatIf 2>&1
+        Write-Host "Syntax test result: $syntaxTest" -ForegroundColor Gray
         
         $result = & $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath 2>&1
         $exitCode = $LASTEXITCODE
