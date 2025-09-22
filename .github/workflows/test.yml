@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Setup PowerShell ${{ matrix.powershell-version }}
-      uses: actions/setup-powershell@v1
+      uses: PowerShell/setup-powershell@v1
       with:
         version: ${{ matrix.powershell-version }}
         
@@ -29,8 +29,9 @@ jobs:
         
         $requiredFiles = @(
           "Microsoft.PowerShell_profile.ps1",
-          "install.ps1",
-          "uninstall.ps1",
+          "scripts\install.ps1",
+          "scripts\uninstall.ps1",
+          "scripts\release.ps1",
           "README.md",
           "CONTRIBUTING.md"
         )
@@ -113,7 +114,7 @@ jobs:
         Write-Host "Testing installation script syntax..."
         
         try {
-          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "install.ps1" -Raw), [ref]$null)
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "scripts\install.ps1" -Raw), [ref]$null)
           Write-Host "Installation script syntax validation passed"
         }
         catch {
@@ -126,7 +127,7 @@ jobs:
         Write-Host "Testing uninstallation script syntax..."
         
         try {
-          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "uninstall.ps1" -Raw), [ref]$null)
+          $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content "scripts\uninstall.ps1" -Raw), [ref]$null)
           Write-Host "Uninstallation script syntax validation passed"
         }
         catch {
