@@ -147,9 +147,12 @@ jobs:
         Write-Host "Installation state verification completed" -ForegroundColor Green
         
         # Verify install log was created and contains expected information
-        if (Test-Path $installLogPath) {
-          Write-Host "Install log created successfully: $installLogPath" -ForegroundColor Green
-          $logContent = Get-Content -Path $installLogPath -Raw
+        $installLogPath = Join-Path $env:TEMP "Install-Test-$(Get-Date -Format 'yyyyMMdd')*.log"
+        $installLogs = Get-ChildItem -Path $installLogPath -ErrorAction SilentlyContinue
+        if ($installLogs) {
+          $latestInstallLog = $installLogs | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          Write-Host "Install log created successfully: $($latestInstallLog.FullName)" -ForegroundColor Green
+          $logContent = Get-Content -Path $latestInstallLog.FullName -Raw
           if ($logContent -match "Installation completed successfully") {
             Write-Host "  [OK] Install log contains success message" -ForegroundColor Green
           } else {
@@ -161,7 +164,7 @@ jobs:
             Write-Host "  [WARNING] Install log missing log file reference" -ForegroundColor Yellow
           }
         } else {
-          Write-Host "WARNING: Install log not created: $installLogPath" -ForegroundColor Yellow
+          Write-Host "WARNING: Install log not found" -ForegroundColor Yellow
         }
         
     - name: Test Uninstallation Script
@@ -185,9 +188,12 @@ jobs:
         Write-Host "Uninstallation verification completed successfully" -ForegroundColor Green
         
         # Verify uninstall log was created and contains expected information
-        if (Test-Path $uninstallLogPath) {
-          Write-Host "Uninstall log created successfully: $uninstallLogPath" -ForegroundColor Green
-          $logContent = Get-Content -Path $uninstallLogPath -Raw
+        $uninstallLogPath = Join-Path $env:TEMP "Uninstall-Test-$(Get-Date -Format 'yyyyMMdd')*.log"
+        $uninstallLogs = Get-ChildItem -Path $uninstallLogPath -ErrorAction SilentlyContinue
+        if ($uninstallLogs) {
+          $latestUninstallLog = $uninstallLogs | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          Write-Host "Uninstall log created successfully: $($latestUninstallLog.FullName)" -ForegroundColor Green
+          $logContent = Get-Content -Path $latestUninstallLog.FullName -Raw
           if ($logContent -match "Uninstallation completed successfully") {
             Write-Host "  [OK] Uninstall log contains success message" -ForegroundColor Green
           } else {
@@ -199,7 +205,7 @@ jobs:
             Write-Host "  [WARNING] Uninstall log missing log file reference" -ForegroundColor Yellow
           }
         } else {
-          Write-Host "WARNING: Uninstall log not created: $uninstallLogPath" -ForegroundColor Yellow
+          Write-Host "WARNING: Uninstall log not found" -ForegroundColor Yellow
         }
         
     - name: Verify Clean Uninstall State
