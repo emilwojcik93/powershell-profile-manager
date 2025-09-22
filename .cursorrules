@@ -1,0 +1,250 @@
+# Cursor Rules for PowerShell Profile Manager Repository
+
+## Terminal and Command Execution Rules
+
+### Terminal Behavior
+- Always wait for command completion before executing the next command
+- Use explicit command termination with proper exit codes
+- Avoid running multiple commands in parallel in the same terminal session
+- Use `-ErrorAction Stop` for critical commands to ensure proper error handling
+- Always check `$LASTEXITCODE` after command execution
+
+### PowerShell Specific Rules
+- Use `Write-Host` with explicit `-ForegroundColor` for better output visibility
+- Always use `-Force` parameter when creating directories or files that might exist
+- Use `-Recurse` when needed for directory operations
+- Prefer `Join-Path` over string concatenation for file paths
+- Use `Test-Path` before file operations to avoid errors
+
+### Command Execution Best Practices
+- Use `2>&1` to capture both stdout and stderr
+- Use `| Out-Null` to suppress output when not needed
+- Use `-UseBasicParsing` for web requests to avoid IE engine issues
+- Use `-PassThru` when you need the object returned from operations
+- Use `-WindowStyle Hidden` for background processes
+
+### Error Handling
+- Always use try-catch blocks for operations that might fail
+- Use `$ErrorActionPreference = "Stop"` at the beginning of scripts
+- Provide meaningful error messages with context
+- Use `Write-Error` for actual errors, `Write-Warning` for warnings
+
+### File Operations
+- Use `Get-Content -Raw` for reading entire files
+- Use `Set-Content -Encoding UTF8` for writing files
+- Use `Copy-Item -Recurse -Force` for directory copying
+- Use `Remove-Item -Recurse -Force` for directory removal
+
+### Module Development
+- Always include proper parameter validation with `[Parameter()]` attributes
+- Use `[CmdletBinding()]` for advanced function features
+- Include comprehensive help documentation with `.SYNOPSIS`, `.DESCRIPTION`, `.PARAMETER`, `.EXAMPLE`
+- Use `Export-ModuleMember` to explicitly export functions
+- Include proper module manifest files (.psd1) with all required fields
+
+### Git Operations
+- Use `git add .` before commits to include all changes
+- Use descriptive commit messages with bullet points for multiple changes
+- Use `git push -u origin main` for initial pushes
+- Always check `git status` before operations
+
+### GitHub Actions
+- Use `shell: pwsh` for PowerShell commands in workflows
+- Use `uses: actions/setup-powershell@v1` for PowerShell setup
+- Use `uses: actions/checkout@v4` for repository checkout
+- Use proper error handling with `exit 1` for failures
+- Use `Write-Host` with colors for better workflow output
+
+### Repository Structure
+- Keep scripts in `scripts/` subdirectory
+- Keep modules in `modules/` subdirectory with individual folders
+- Keep documentation in `docs/` subdirectory
+- Keep workflows in `.github/workflows/` subdirectory
+- Use consistent naming conventions (PascalCase for functions, kebab-case for files)
+
+### Security
+- Never hardcode sensitive information
+- Use environment variables for configuration
+- Validate all user inputs
+- Use secure defaults for all parameters
+- Document security considerations in code
+
+### Performance
+- Use `-Silent` parameter for operations that don't need verbose output
+- Use `Start-Job` for long-running operations
+- Use `Wait-Job` with timeout for job management
+- Avoid unnecessary file I/O operations
+- Use efficient string operations
+
+### Testing
+- Test all scripts with different parameter combinations
+- Use `-WhatIf` when available for dry-run testing
+- Test error conditions and edge cases
+- Validate syntax before committing
+- Use proper test data and cleanup
+
+### Documentation
+- Include comprehensive README files for each module
+- Document all public functions with examples
+- Include troubleshooting sections
+- Document installation and usage procedures
+- Keep documentation up to date with code changes
+
+## Cursor-Specific Optimizations
+
+### Terminal Interaction
+- Use explicit command completion detection
+- Avoid nested command execution
+- Use proper command chaining with `;` or `&&`
+- Use `echo` or `Write-Host` to mark command completion
+- Use `exit 0` to explicitly end scripts
+
+### Output Management
+- Use `Write-Host` instead of `Write-Output` for user-facing messages
+- Use colors to distinguish different types of output
+- Use `Write-Verbose` for debug information
+- Use `Write-Progress` for long-running operations
+- Avoid excessive output that might confuse Cursor
+
+### Command Structure
+- Use single-line commands when possible
+- Break complex commands into multiple steps
+- Use variables to store intermediate results
+- Use proper quoting for paths with spaces
+- Use backticks for line continuation when needed
+
+### Error Prevention
+- Always validate inputs before processing
+- Use proper parameter types and validation
+- Use `-Confirm` for destructive operations
+- Use `-WhatIf` for testing operations
+- Use proper error handling and recovery
+
+### Cursor Integration
+- Use clear, descriptive command names
+- Use consistent parameter naming
+- Use proper help text for all functions
+- Use examples in documentation
+- Use proper module structure for easy discovery
+
+## Background Agent Integration
+
+### Agent Configuration
+- Background agent runs continuously to monitor repository health
+- Agent key: Stored securely in GitHub secrets as CURSOR_AGENT_KEY
+- Agent name: repo-agent
+- Monitors workflows, scripts, modules, and documentation
+
+### Agent Tasks
+- Validates PowerShell syntax automatically
+- Tests module loading and functionality
+- Runs installation/uninstallation tests
+- Monitors GitHub Actions workflows
+- Updates documentation when needed
+- Fixes issues automatically when possible
+
+### Agent Triggers
+- Push events to main/develop branches
+- Pull request creation and updates
+- Workflow failures
+- Script syntax errors
+- Module loading failures
+- Test failures
+
+### Agent Success Criteria
+- All workflows pass successfully
+- All scripts have valid PowerShell syntax
+- All modules load without errors
+- Installation script works correctly
+- Uninstallation script works correctly
+- Release script works correctly
+- Documentation is synchronized with code
+- No linting or syntax errors
+
+### Agent Safety Limits
+- Maximum 10 commits per hour
+- Maximum 20 workflow runs per hour
+- 30-minute timeout for operations
+- Auto-fix only for safe operations
+- Manual intervention required for complex issues
+
+### Working with the Agent
+- Agent runs automatically on repository changes
+- Monitor agent status in GitHub Actions
+- Agent logs provide detailed information about issues
+- Failed runs trigger auto-fix attempts when possible
+- Agent notifications show success/failure status
+
+### Agent Monitoring
+- Check `.github/workflows/background-agent.yml` for agent status
+- Review agent logs for detailed error information
+- Monitor workflow runs for continuous health checks
+- Agent runs every hour automatically via cron schedule
+
+## PowerShell Development Standards
+
+### Variable Syntax with Special Characters
+- **ALWAYS use bracket notation**: `${var}:` instead of `$var:` for special characters
+- **Path handling**: Use `"${var}.exe"` instead of `"$var.exe"`
+- **Special characters**: Use `${var}%` instead of `$var%`
+- **Bracket notation**: Always use `${variable}` when variable is near special characters
+- **Examples**:
+  ```powershell
+  # CORRECT
+  $path = "${env:TEMP}\file.txt"
+  $url = "https://${host}:${port}/api"
+  $command = "${exe} --config=${config}"
+  
+  # INCORRECT - Can cause syntax errors
+  $path = "$env:TEMP\file.txt"
+  $url = "https://$host:$port/api"
+  $command = "$exe --config=$config"
+  ```
+
+### UTF-8/ASCII Compliance
+- **NO Unicode characters**: Use ASCII only in all source files
+- **NO emojis**: Use text descriptions instead
+- **Examples**:
+  ```powershell
+  # CORRECT
+  Write-Host "Starting installation..." -ForegroundColor Green
+  Write-Host "Installation completed successfully" -ForegroundColor Green
+  
+  # INCORRECT
+  Write-Host "🚀 Starting installation..." -ForegroundColor Green
+  Write-Host "✅ Installation completed successfully" -ForegroundColor Green
+  ```
+
+### Error Handling Standards
+- Use `-ErrorAction Stop` for critical operations
+- Implement try-catch blocks for all major operations
+- Use `Write-Host` with explicit `-ForegroundColor` for better visibility
+- Include comprehensive parameter validation
+- Use proper PowerShell 5.x compatible syntax
+
+### Module Development
+- Each module must have `.psm1` and `.psd1` files
+- Use `[CmdletBinding()]` for advanced function features
+- Include comprehensive help documentation
+- Use `Export-ModuleMember` to explicitly export functions
+- Include proper parameter validation with `[Parameter()]` attributes
+
+### Cursor IDE Integration
+- Detect Cursor environment using `Test-CursorEnvironment` function
+- Optimize profile loading for agent sessions (disable heavy prompts)
+- Use MCP server for secure command execution
+- Implement proper terminal behavior to avoid hanging issues
+
+### Infrastructure as Code Principles
+- All scripts must be self-contained and executable without manual intervention
+- Use WinUtil-style self-elevation for admin operations
+- No static assets - everything must be dynamically generated or configurable
+- Test scripts in both interactive and silent modes
+- Include comprehensive logging and error handling
+
+### GitHub Actions Compatibility
+- Use correct action references (actions/setup-powershell@v1)
+- Include proper error handling and logging
+- Use ASCII characters only in workflow files
+- Implement proper timeout and resource management
+- Include comprehensive testing and validation steps

@@ -1,0 +1,112 @@
+# PowerShell Profile Manager .gitignore
+
+# PowerShell
+*.ps1.bak
+*.psm1.bak
+*.psd1.bak
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Logs
+*.log
+logs/
+
+# Releases
+releases/
+*.zip
+
+# Test results
+test-results/
+TestResults.xml
+
+# Coverage reports
+coverage/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.backup
+*.bak
+
+# User-specific files
+config.local.ps1
+settings.local.json
+
+# Module-specific ignores
+modules/*/tests/
+modules/*/examples/
+modules/*/docs/
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Cache
+.cache/
+*.cache
+
+# Environment files
+.env
+.env.local
+
+# Node modules (if using any Node.js tools)
+node_modules/
+
+# Python (if using any Python tools)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

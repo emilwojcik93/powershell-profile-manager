@@ -1,0 +1,47 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        powershell-version: ['5.1', '7.4']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Validate Repository Structure
+      run: .\.github\scripts\validate-repository-structure.ps1
+        
+    - name: Test PowerShell Syntax
+      run: .\.github\scripts\validate-powershell-syntax.ps1
+        
+    - name: Test Module Loading
+      run: .\.github\scripts\test-module-loading.ps1
+        
+    - name: Test Profile Loading
+      run: .\.github\scripts\test-profile-loading.ps1
+        
+    - name: Test PowerShellMCP Module
+      run: .\.github\scripts\test-powershellmcp-module.ps1
+        
+    - name: Test VideoCompressor Module
+      run: .\.github\scripts\test-videocompressor-module.ps1
+        
+    - name: Generate Test Report
+      run: .\.github\scripts\generate-test-report.ps1 -OutputPath "test-report.json"
+        
+    - name: Upload test report
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report-${{ matrix.powershell-version }}
+        path: test-report.json
+        retention-days: 30

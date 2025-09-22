@@ -1,0 +1,69 @@
+name: Test Profile Installation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      test_environment:
+        description: 'Test environment'
+        required: true
+        default: 'windows-latest'
+        type: choice
+        options:
+        - windows-latest
+        - windows-2022
+        - windows-2019
+
+jobs:
+  test-installation:
+    runs-on: ${{ github.event.inputs.test_environment || 'windows-latest' }}
+    
+    strategy:
+      matrix:
+        powershell-version: [5.1, 7.4]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Test Repository Structure
+      shell: pwsh
+      run: .\.github\scripts\validate-repository-structure.ps1
+      
+    - name: Test PowerShell Syntax
+      shell: pwsh
+      run: .\.github\scripts\validate-powershell-syntax.ps1
+      
+    - name: Test Module Loading
+      shell: pwsh
+      run: .\.github\scripts\test-module-loading.ps1
+      
+    - name: Test Profile Loading
+      shell: pwsh
+      run: .\.github\scripts\test-profile-loading.ps1
+      
+    - name: Test Installation Script
+      shell: pwsh
+      run: .\.github\scripts\test-installation-script.ps1
+      
+    - name: Test Uninstallation Script
+      shell: pwsh
+      run: .\.github\scripts\test-uninstallation-script.ps1
+      
+    - name: Test Release Script
+      shell: pwsh
+      run: .\.github\scripts\test-release-script.ps1
+      
+    - name: Generate Test Report
+      shell: pwsh
+      run: .\.github\scripts\generate-test-report.ps1 -OutputPath "installation-test-report.json"
+      
+    - name: Upload Test Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: installation-test-report-${{ matrix.powershell-version }}
+        path: installation-test-report.json
+        retention-days: 30

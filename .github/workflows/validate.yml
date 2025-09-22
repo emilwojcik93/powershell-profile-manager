@@ -1,0 +1,44 @@
+name: Validate Scripts and Syntax
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Validate Repository Structure
+      shell: pwsh
+      run: .\.github\scripts\validate-repository-structure.ps1
+        
+    - name: Validate PowerShell Syntax
+      shell: pwsh
+      run: .\.github\scripts\validate-powershell-syntax.ps1
+        
+    - name: Test Module Loading
+      shell: pwsh
+      run: .\.github\scripts\test-module-loading.ps1
+        
+    - name: Test Profile Loading
+      shell: pwsh
+      run: .\.github\scripts\test-profile-loading.ps1
+        
+    - name: Test PowerShellMCP Module
+      shell: pwsh
+      run: .\.github\scripts\test-powershellmcp-module.ps1
+        
+    - name: Test VideoCompressor Module
+      shell: pwsh
+      run: .\.github\scripts\test-videocompressor-module.ps1
+        
+    - name: Generate Validation Report
+      shell: pwsh
+      run: .\.github\scripts\generate-test-report.ps1 -OutputPath "validation-report.json"

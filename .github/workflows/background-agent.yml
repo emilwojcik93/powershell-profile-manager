@@ -1,0 +1,71 @@
+name: Background Agent - Continuous Testing and Fixing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run every hour to check for issues
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Agent mode'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+        - full
+        - syntax-only
+        - workflows-only
+        - modules-only
+
+jobs:
+  background-agent:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    
+    strategy:
+      matrix:
+        powershell-version: [5.1, 7.4]
+      fail-fast: false
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+        
+    - name: Run Background Agent
+      shell: pwsh
+      run: .\.github\scripts\background-agent.ps1 -Mode "${{ github.event.inputs.mode || 'full' }}"
+
+  auto-fix:
+    runs-on: windows-latest
+    needs: background-agent
+    if: failure()
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Auto-Fix Issues
+      shell: pwsh
+      run: .\.github\scripts\auto-fix-issues.ps1
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [background-agent]
+    if: always()
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Notify Results
+      shell: pwsh
+      run: .\.github\scripts\notify-results.ps1 -Status "${{ needs.background-agent.result }}"
