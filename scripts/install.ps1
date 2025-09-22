@@ -25,7 +25,10 @@ param(
     [string]$SourcePath,
     
     [Parameter(Mandatory = $false)]
-    [switch]$SkipRestartPrompt
+    [switch]$SkipRestartPrompt,
+    
+    [Parameter(Mandatory = $false)]
+    [string]$LogPath
 )
 
 # Set error action preference
@@ -35,6 +38,17 @@ $ErrorActionPreference = if ($Silent) {
     'Stop' 
 }
 
+# Initialize log file
+if (-not $LogPath) {
+    $LogPath = Join-Path $env:TEMP "PowerShell-Profile-Manager-Install-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+}
+
+# Ensure log directory exists
+$logDir = Split-Path -Parent $LogPath
+if (-not (Test-Path $logDir)) {
+    New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+}
+
 function Write-InstallLog {
     param(
         [string]$Message,
@@ -42,24 +56,33 @@ function Write-InstallLog {
         [string]$Level = 'Info'
     )
     
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $logMessage = "[$timestamp] [$Level] $Message"
+    
+    # Write to console (unless silent)
     if (-not $Silent) {
-        $timestamp = Get-Date -Format 'HH:mm:ss'
-        $logMessage = "[$timestamp] $Message"
-        
+        $consoleMessage = "[$($timestamp.Split(' ')[1])] $Message"
         switch ($Level) {
             'Info' {
-                Write-Host $logMessage -ForegroundColor White 
+                Write-Host $consoleMessage -ForegroundColor White 
             }
             'Success' {
-                Write-Host $logMessage -ForegroundColor Green 
+                Write-Host $consoleMessage -ForegroundColor Green 
             }
             'Warning' {
-                Write-Host $logMessage -ForegroundColor Yellow 
+                Write-Host $consoleMessage -ForegroundColor Yellow 
             }
             'Error' {
-                Write-Host $logMessage -ForegroundColor Red 
+                Write-Host $consoleMessage -ForegroundColor Red 
             }
         }
+    }
+    
+    # Write to log file
+    try {
+        Add-Content -Path $LogPath -Value $logMessage -Encoding UTF8 -ErrorAction SilentlyContinue
+    } catch {
+        # If logging fails, don't break the installation
     }
 }
 
@@ -452,6 +475,7 @@ try {
     Show-InstallationSummary
     
     Write-InstallLog 'Installation completed successfully!' 'Success'
+    Write-InstallLog "Log file saved to: $LogPath" 'Info'
 } catch {
     Write-InstallLog "Installation failed with error: $($_.Exception.Message)" 'Error'
     Write-InstallLog "Error details: $($_.Exception)" 'Error'

@@ -15,6 +15,8 @@
 - Use `-Recurse` when needed for directory operations
 - Prefer `Join-Path` over string concatenation for file paths
 - Use `Test-Path` before file operations to avoid errors
+- **NEVER use system/read-only variable names for custom variables** (e.g., `$host`, `$error`, `$input`, `$args`, `$this`, `$null`, `$true`, `$false`)
+- Use descriptive variable names that don't conflict with PowerShell built-ins
 
 ### Command Execution Best Practices
 - Use `2>&1` to capture both stdout and stderr

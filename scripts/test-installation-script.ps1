@@ -21,9 +21,9 @@ param(
     [string]$RepositoryRoot = (Get-Location)
 )
 
-$ErrorActionPreference = "Stop"
+$errorLogActionPreference = 'Stop'
 
-Write-Host "Testing Installation Script..." -ForegroundColor Green
+Write-Host 'Testing Installation Script...' -ForegroundColor Green
 
 # Create test directory
 $testPath = "C:\Temp\ProfileManagerTest_$([System.Guid]::NewGuid().ToString('N')[0..7] -join '')"
@@ -31,8 +31,8 @@ New-Item -ItemType Directory -Path $testPath -Force | Out-Null
 
 try {
     # Test installation script execution
-    Write-Host "Testing installation script execution..." -ForegroundColor Cyan
-    $installScriptPath = Join-Path $RepositoryRoot "scripts\install.ps1"
+    Write-Host 'Testing installation script execution...' -ForegroundColor Cyan
+    $installScriptPath = Join-Path $RepositoryRoot 'scripts\install.ps1'
     
     # Ensure the install script exists
     if (-not (Test-Path $installScriptPath)) {
@@ -49,40 +49,49 @@ try {
         Write-Host "Install script exists: $(Test-Path $installScriptPath)" -ForegroundColor Gray
         
         # Test the script syntax first
-        Write-Host "Testing script syntax..." -ForegroundColor Gray
+        Write-Host 'Testing script syntax...' -ForegroundColor Gray
         try {
             $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $installScriptPath -Raw), [ref]$null)
-            Write-Host "SUCCESS: Script syntax is valid" -ForegroundColor Green
+            Write-Host 'SUCCESS: Script syntax is valid' -ForegroundColor Green
         } catch {
             Write-Host "ERROR: Script syntax error: $($_.Exception.Message)" -ForegroundColor Red
             exit 1
         }
         
         # Create a test profile to avoid modifying the real user profile
-        $testProfilePath = Join-Path $testPath "test-profile.ps1"
-        Set-Content -Path $testProfilePath -Value "# Test Profile" -Encoding UTF8
+        $testProfilePath = Join-Path $testPath 'test-profile.ps1'
+        Set-Content -Path $testProfilePath -Value '# Test Profile' -Encoding UTF8
         
         # Run the installation script in silent mode to avoid interactive prompts
         # Use a temporary environment variable to override the profile path
         $env:PROFILE = $testProfilePath
         try {
             # Use Start-Process to reliably capture exit code
-            $processInfo = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $installScriptPath, "-InstallPath", $testPath, "-Force", "-SkipInternetCheck", "-SourcePath", $sourcePath, "-Silent", "-SkipRestartPrompt" -Wait -PassThru -RedirectStandardOutput "temp_output.txt" -RedirectStandardError "temp_error.txt"
+            $testLogPath = Join-Path $testPath 'install-test.log'
+            $processInfo = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $installScriptPath, '-InstallPath', $testPath, '-Force', '-SkipInternetCheck', '-SourcePath', $sourcePath, '-Silent', '-SkipRestartPrompt', '-LogPath', $testLogPath -Wait -PassThru -RedirectStandardOutput 'temp_output.txt' -RedirectStandardError 'temp_error.txt'
             $exitCode = $processInfo.ExitCode
             
             # Read output files
-            $output = if (Test-Path "temp_output.txt") { Get-Content "temp_output.txt" -Raw } else { "" }
-            $error = if (Test-Path "temp_error.txt") { Get-Content "temp_error.txt" -Raw } else { "" }
+            $output = if (Test-Path 'temp_output.txt') {
+                Get-Content 'temp_output.txt' -Raw 
+            } else {
+                '' 
+            }
+            $errorLog = if (Test-Path 'temp_error.txt') {
+                Get-Content 'temp_error.txt' -Raw 
+            } else {
+                '' 
+            }
             
             Write-Host "Installation script output: $output" -ForegroundColor Gray
-            if ($error) {
-                Write-Host "Installation script errors: $error" -ForegroundColor Yellow
+            if ($errorLog) {
+                Write-Host "Installation script errors: $errorLog" -ForegroundColor Yellow
             }
             Write-Host "Installation script exit code: $exitCode" -ForegroundColor Gray
             
             # Clean up temp files
-            Remove-Item "temp_output.txt" -ErrorAction SilentlyContinue
-            Remove-Item "temp_error.txt" -ErrorAction SilentlyContinue
+            Remove-Item 'temp_output.txt' -ErrorAction SilentlyContinue
+            Remove-Item 'temp_error.txt' -ErrorAction SilentlyContinue
         } finally {
             Remove-Item Env:PROFILE -ErrorAction SilentlyContinue
         }
@@ -92,19 +101,19 @@ try {
     }
     
     if ($exitCode -eq 0) {
-        Write-Host "SUCCESS: Installation script runs without errors" -ForegroundColor Green
+        Write-Host 'SUCCESS: Installation script runs without errors' -ForegroundColor Green
         
         # Verify installation results
         if (Test-Path "$testPath\Microsoft.PowerShell_profile.ps1") {
-            Write-Host "SUCCESS: Main profile script was installed" -ForegroundColor Green
+            Write-Host 'SUCCESS: Main profile script was installed' -ForegroundColor Green
         } else {
-            Write-Host "WARNING: Main profile script was not installed" -ForegroundColor Yellow
+            Write-Host 'WARNING: Main profile script was not installed' -ForegroundColor Yellow
         }
         
         if (Test-Path "$testPath\modules") {
-            Write-Host "SUCCESS: Modules directory was created" -ForegroundColor Green
+            Write-Host 'SUCCESS: Modules directory was created' -ForegroundColor Green
         } else {
-            Write-Host "WARNING: Modules directory was not created" -ForegroundColor Yellow
+            Write-Host 'WARNING: Modules directory was not created' -ForegroundColor Yellow
         }
         
     } else {
@@ -119,7 +128,7 @@ try {
     # Cleanup
     if (Test-Path $testPath) {
         Remove-Item $testPath -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "Test directory cleaned up" -ForegroundColor White
+        Write-Host 'Test directory cleaned up' -ForegroundColor White
     }
 }
 
