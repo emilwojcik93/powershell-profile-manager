@@ -66,10 +66,23 @@ try {
         # Use a temporary environment variable to override the profile path
         $env:PROFILE = $testProfilePath
         try {
-            $result = & $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath -Silent -SkipRestartPrompt 2>&1
-            $exitCode = $LASTEXITCODE
-            Write-Host "Installation script output: $result" -ForegroundColor Gray
+            # Use Start-Process to reliably capture exit code
+            $processInfo = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $installScriptPath, "-InstallPath", $testPath, "-Force", "-SkipInternetCheck", "-SourcePath", $sourcePath, "-Silent", "-SkipRestartPrompt" -Wait -PassThru -RedirectStandardOutput "temp_output.txt" -RedirectStandardError "temp_error.txt"
+            $exitCode = $processInfo.ExitCode
+            
+            # Read output files
+            $output = if (Test-Path "temp_output.txt") { Get-Content "temp_output.txt" -Raw } else { "" }
+            $error = if (Test-Path "temp_error.txt") { Get-Content "temp_error.txt" -Raw } else { "" }
+            
+            Write-Host "Installation script output: $output" -ForegroundColor Gray
+            if ($error) {
+                Write-Host "Installation script errors: $error" -ForegroundColor Yellow
+            }
             Write-Host "Installation script exit code: $exitCode" -ForegroundColor Gray
+            
+            # Clean up temp files
+            Remove-Item "temp_output.txt" -ErrorAction SilentlyContinue
+            Remove-Item "temp_error.txt" -ErrorAction SilentlyContinue
         } finally {
             Remove-Item Env:PROFILE -ErrorAction SilentlyContinue
         }

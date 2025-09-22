@@ -95,6 +95,14 @@ function Get-ProfilePath {
         return $env:PROFILE
     }
     
+    # Ensure USERPROFILE is available
+    if (-not $env:USERPROFILE) {
+        $env:USERPROFILE = $env:HOME
+        if (-not $env:USERPROFILE) {
+            $env:USERPROFILE = "C:\Users\$env:USERNAME"
+        }
+    }
+    
     # Determine the correct profile path based on PowerShell version
     if ($PSVersionTable.PSVersion.Major -ge 6) {
         # PowerShell 7+
@@ -409,19 +417,32 @@ try {
     Write-InstallLog 'PowerShell Profile Manager Installer' 'Info'
     Write-InstallLog '=====================================' 'Info'
     
+    # Debug information
+    Write-InstallLog "Installation Path: $InstallPath" 'Info'
+    Write-InstallLog "Source Path: $SourcePath" 'Info'
+    Write-InstallLog "Silent Mode: $Silent" 'Info'
+    Write-InstallLog "Force Mode: $Force" 'Info'
+    Write-InstallLog "Skip Internet Check: $SkipInternetCheck" 'Info'
+    Write-InstallLog "Skip Restart Prompt: $SkipRestartPrompt" 'Info'
+    Write-InstallLog "Modules: $($Modules -join ', ')" 'Info'
+    Write-InstallLog "Repository URL: $RepositoryUrl" 'Info'
+    
     # Install profile manager
+    Write-InstallLog 'Starting profile manager installation...' 'Info'
     if (-not (Install-ProfileManager)) {
         Write-InstallLog 'Installation failed' 'Error'
         exit 1
     }
     
     # Configure profile
+    Write-InstallLog 'Starting profile configuration...' 'Info'
     if (-not (Configure-Profile)) {
         Write-InstallLog 'Profile configuration failed' 'Error'
         exit 1
     }
     
     # Test installation
+    Write-InstallLog 'Starting installation test...' 'Info'
     if (-not (Test-Installation)) {
         Write-InstallLog 'Installation test failed' 'Error'
         exit 1
@@ -433,5 +454,7 @@ try {
     Write-InstallLog 'Installation completed successfully!' 'Success'
 } catch {
     Write-InstallLog "Installation failed with error: $($_.Exception.Message)" 'Error'
+    Write-InstallLog "Error details: $($_.Exception)" 'Error'
+    Write-InstallLog "Stack trace: $($_.ScriptStackTrace)" 'Error'
     exit 1
 }
