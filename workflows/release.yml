@@ -39,8 +39,13 @@ jobs:
     - name: Create Release Package
       shell: pwsh
       run: |
-        $includeExamples = ${{ github.event.inputs.include_examples == 'true' }}
-        .\.github\scripts\create-release-package.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}" -IncludeExamples:$$includeExamples
+        $version = "${{ github.event.inputs.version || '1.0.0' }}"
+        $includeExamples = "${{ github.event.inputs.include_examples }}"
+        if ($includeExamples -eq "true") {
+          .\.github\scripts\create-release-package.ps1 -Version $version -IncludeExamples:$$true
+        } else {
+          .\.github\scripts\create-release-package.ps1 -Version $version -IncludeExamples:$$false
+        }
 
     - name: Create Release Archive
       shell: pwsh

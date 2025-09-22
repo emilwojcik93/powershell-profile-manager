@@ -42,10 +42,15 @@ try {
     
     # Run the installation script with proper error handling
     try {
-        Write-Host "Running: $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath (Split-Path $RepositoryRoot -Parent)" -ForegroundColor Gray
-        $result = & $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath (Split-Path $RepositoryRoot -Parent) 2>&1
+        $sourcePath = Split-Path $RepositoryRoot -Parent
+        Write-Host "Running: $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath" -ForegroundColor Gray
+        Write-Host "Source path exists: $(Test-Path $sourcePath)" -ForegroundColor Gray
+        Write-Host "Main profile script exists: $(Test-Path (Join-Path $sourcePath 'Microsoft.PowerShell_profile.ps1'))" -ForegroundColor Gray
+        
+        $result = & $installScriptPath -InstallPath $testPath -Force -SkipInternetCheck -SourcePath $sourcePath 2>&1
         $exitCode = $LASTEXITCODE
         Write-Host "Installation script output: $result" -ForegroundColor Gray
+        Write-Host "Installation script exit code: $exitCode" -ForegroundColor Gray
     } catch {
         Write-Host "ERROR: Exception during installation: $($_.Exception.Message)" -ForegroundColor Red
         exit 1
