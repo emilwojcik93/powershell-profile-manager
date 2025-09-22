@@ -39,7 +39,7 @@ jobs:
         fetch-depth: 0
         
     - name: Setup PowerShell
-      uses: PowerShell/setup-powershell@v1
+      uses: PowerShell/setup-powershell@v1.3.0
       with:
         version: ${{ matrix.powershell-version }}
         
@@ -575,7 +575,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup PowerShell
-      uses: PowerShell/setup-powershell@v1
+      uses: PowerShell/setup-powershell@v1.3.0
       with:
         version: '7.4'
         
