@@ -27,9 +27,6 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
-      
-    - name: Setup PowerShell
-      uses: actions/setup-powershell@v1
         
     - name: Verify Initial Clean State
       shell: pwsh
