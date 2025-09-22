@@ -17,6 +17,9 @@
 - Use `Test-Path` before file operations to avoid errors
 - **NEVER use system/read-only variable names for custom variables** (e.g., `$host`, `$error`, `$input`, `$args`, `$this`, `$null`, `$true`, `$false`)
 - Use descriptive variable names that don't conflict with PowerShell built-ins
+- **ALWAYS add silent/unattended/non-interactive parameters** to scripts for automation support
+- **Use ASCII/UTF-8 characters only** - NO Unicode characters in scripts (e.g., use `[OK]` instead of `✓`, `-` instead of `•`)
+- **Default to silent mode** when automation parameters are used (`-NonInteractive`, `-Unattended`)
 
 ### Command Execution Best Practices
 - Use `2>&1` to capture both stdout and stderr

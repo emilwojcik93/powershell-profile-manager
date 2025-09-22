@@ -13,11 +13,22 @@ param(
     [switch]$Force,
     
     [Parameter(Mandatory = $false)]
-    [switch]$KeepModules
+    [switch]$KeepModules,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Unattended
 )
 
+# Set automation mode if any automation parameter is used
+if ($NonInteractive -or $Unattended) {
+    $Silent = $true
+}
+
 # Set error action preference
-$ErrorActionPreference = if ($Silent) { "SilentlyContinue" } else { "Stop" }
+$ErrorActionPreference = if ($Silent -or $NonInteractive -or $Unattended) { "SilentlyContinue" } else { "Stop" }
 
 function Write-UninstallLog {
     param(
@@ -221,34 +232,34 @@ function Test-Uninstallation {
 }
 
 function Show-UninstallationSummary {
-    Write-UninstallLog "Uninstallation Summary:" "Info"
-    Write-UninstallLog "  Installation Path: $InstallPath" "Info"
-    Write-UninstallLog "  Profile Path: $(Get-ProfilePath)" "Info"
-    Write-UninstallLog "  Keep Modules: $KeepModules" "Info"
-    Write-UninstallLog "  Force Mode: $Force" "Info"
+    Write-UninstallLog 'Uninstallation Summary:' 'Info'
+    Write-UninstallLog "  Installation Path: $InstallPath" 'Info'
+    Write-UninstallLog "  Profile Path: $(Get-ProfilePath)" 'Info'
+    Write-UninstallLog "  Keep Modules: $KeepModules" 'Info'
+    Write-UninstallLog "  Force Mode: $Force" 'Info'
     
-    Write-UninstallLog "`nWhat was removed:" "Info"
-    Write-UninstallLog "  ✓ ProfileManager configuration from PowerShell profile" "Success"
-    Write-UninstallLog "  ✓ Loaded profile modules" "Success"
+    Write-UninstallLog "`nWhat was removed:" 'Info'
+    Write-UninstallLog '  [OK] ProfileManager configuration from PowerShell profile' 'Success'
+    Write-UninstallLog '  [OK] Loaded profile modules' 'Success'
     
     if (-not $KeepModules) {
-        Write-UninstallLog "  ✓ Installation files and directories" "Success"
+        Write-UninstallLog '  [OK] Installation files and directories' 'Success'
     } else {
-        Write-UninstallLog "  ⊘ Installation files (kept as requested)" "Warning"
+        Write-UninstallLog '  [SKIP] Installation files (kept as requested)' 'Warning'
     }
     
-    Write-UninstallLog "`nNext Steps:" "Info"
-    Write-UninstallLog "  1. Restart PowerShell to ensure clean state" "Info"
-    Write-UninstallLog "  2. Your PowerShell profile is now restored to default" "Info"
+    Write-UninstallLog "`nNext Steps:" 'Info'
+    Write-UninstallLog '  1. Restart PowerShell to ensure clean state' 'Info'
+    Write-UninstallLog '  2. Your PowerShell profile is now restored to default' 'Info'
     
     if ($KeepModules) {
-        Write-UninstallLog "  3. Modules are still available at: $InstallPath" "Info"
+        Write-UninstallLog "  3. Modules are still available at: $InstallPath" 'Info'
     }
     
     if (-not $Silent) {
         $restart = Read-Host "`nRestart PowerShell now? (y/n)"
         if ($restart -eq 'y' -or $restart -eq 'Y') {
-            Write-UninstallLog "Restarting PowerShell..." "Info"
+            Write-UninstallLog 'Restarting PowerShell...' 'Info'
             Start-Process PowerShell
         }
     }
@@ -265,13 +276,13 @@ function Show-Confirmation {
     Write-UninstallLog "This will remove the PowerShell Profile Manager and restore your default profile." "Warning"
     Write-UninstallLog ""
     Write-UninstallLog "What will be removed:" "Info"
-    Write-UninstallLog "  • ProfileManager configuration from PowerShell profile" "Info"
-    Write-UninstallLog "  • All loaded profile modules" "Info"
+    Write-UninstallLog "  - ProfileManager configuration from PowerShell profile" "Info"
+    Write-UninstallLog "  - All loaded profile modules" "Info"
     
     if (-not $KeepModules) {
-        Write-UninstallLog "  • All installation files and directories" "Info"
+        Write-UninstallLog "  - All installation files and directories" "Info"
     } else {
-        Write-UninstallLog "  • Installation files will be kept" "Info"
+        Write-UninstallLog "  - Installation files will be kept" "Info"
     }
     
     Write-UninstallLog ""
@@ -329,9 +340,9 @@ try {
     # Show summary
     Show-UninstallationSummary
     
-    Write-UninstallLog "Uninstallation completed successfully!" "Success"
+    Write-UninstallLog 'Uninstallation completed successfully!' 'Success'
 }
 catch {
-    Write-UninstallLog "Uninstallation failed with error: $($_.Exception.Message)" "Error"
+    Write-UninstallLog "Uninstallation failed with error: $($_.Exception.Message)" 'Error'
     exit 1
 }
