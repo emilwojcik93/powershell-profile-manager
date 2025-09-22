@@ -568,13 +568,4 @@ while (`$true) {
 Write-Host "PowerShellMCP module loaded successfully!" -ForegroundColor Green
 Write-Host "Use Start-PowerShellMCPServer to start the MCP server for Cursor IDE integration" -ForegroundColor Yellow
 
-# Export module members
-Export-ModuleMember -Function @(
-    'Start-PowerShellMCPServer',
-    'Stop-PowerShellMCPServer',
-    'Get-PowerShellMCPStatus',
-    'Test-PowerShellMCPConnection',
-    'Invoke-PowerShellMCPCommand',
-    'Get-PowerShellMCPConfig',
-    'Set-PowerShellMCPConfig'
-)
+# Functions are exported via the .psd1 manifest file

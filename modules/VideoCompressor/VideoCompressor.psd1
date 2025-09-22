@@ -13,6 +13,7 @@
     FunctionsToExport = @(
         'Compress-Video',
         'Test-FFmpegInstallation',
+        'Install-FFmpeg',
         'Get-VideoProperties',
         'Get-OptimalCompressionSettings',
         'Get-OutputDirectory'

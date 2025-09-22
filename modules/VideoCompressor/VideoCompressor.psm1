@@ -8,7 +8,13 @@ function Test-FFmpegInstallation {
     
     .DESCRIPTION
     This function checks for FFmpeg installation in the system PATH and winget packages.
-    If not found, it offers to install FFmpeg using winget.
+    If not found, it can automatically install FFmpeg using winget or GitHub releases.
+    
+    .PARAMETER Silent
+    Run in silent mode without user prompts. Automatically installs FFmpeg if not found.
+    
+    .PARAMETER AutoInstall
+    Automatically install FFmpeg if not found (same as Silent for backward compatibility)
     
     .OUTPUTS
     [bool] Returns $true if FFmpeg is available, $false otherwise
@@ -16,6 +22,15 @@ function Test-FFmpegInstallation {
     .EXAMPLE
     Test-FFmpegInstallation
     #>
+    
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [switch]$Silent,
+        
+        [Parameter(Mandatory = $false)]
+        [switch]$AutoInstall
+    )
     
     # Check if ffmpeg is available in PATH
     $ffmpegAvailable = Get-Command ffmpeg -ErrorAction SilentlyContinue
@@ -97,59 +112,223 @@ function Test-FFmpegInstallation {
         Write-Host "Available installation options via winget:" -ForegroundColor Cyan
         Write-Host "1. Gyan.FFmpeg (MSVC build - Best Windows compatibility)" -ForegroundColor Green
         Write-Host "2. BtbN.FFmpeg.GPL (MinGW build - Latest features)" -ForegroundColor Yellow
-        Write-Host ""
-        
-        $install = Read-Host "Do you want to install FFmpeg now? (y/n)"
-        
-        if ($install -eq 'y' -or $install -eq 'Y') {
-            Write-Host "Installing FFmpeg (Gyan.FFmpeg)..." -ForegroundColor Yellow
-            
-            try {
-                winget install Gyan.FFmpeg --accept-package-agreements --accept-source-agreements
-                
-                # Refresh PATH in current session
-                $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-                
-                # Verify installation
-                Start-Sleep -Seconds 3
-                $ffmpegAvailable = Get-Command ffmpeg -ErrorAction SilentlyContinue
-                
-                if (-not $ffmpegAvailable) {
-                    Write-Host "Primary installation failed. Trying alternative package (BtbN.FFmpeg.GPL)..." -ForegroundColor Yellow
-                    winget install BtbN.FFmpeg.GPL --accept-package-agreements --accept-source-agreements
-                    
-                    # Refresh PATH again
-                    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-                    Start-Sleep -Seconds 3
-                    $ffmpegAvailable = Get-Command ffmpeg -ErrorAction SilentlyContinue
-                }
-                
-                if ($ffmpegAvailable) {
-                    Write-Host "FFmpeg installed successfully!" -ForegroundColor Green
-                    Write-Host "You may need to restart PowerShell for PATH changes to take effect." -ForegroundColor Yellow
-                    return $true
-                }
-                else {
-                    Write-Host "FFmpeg installation failed. Please install manually or restart PowerShell." -ForegroundColor Red
-                    Write-Host "Manual installation: Download from https://ffmpeg.org/download.html" -ForegroundColor Yellow
-                    return $false
-                }
-            }
-            catch {
-                Write-Host "Error installing FFmpeg: $($_.Exception.Message)" -ForegroundColor Red
-                Write-Host "Please try installing manually:" -ForegroundColor Yellow
-                Write-Host "  winget install Gyan.FFmpeg" -ForegroundColor Cyan
-                Write-Host "  or: winget install BtbN.FFmpeg.GPL" -ForegroundColor Cyan
-                return $false
-            }
+        # Check if we should auto-install
+        if ($Silent -or $AutoInstall) {
+            Write-Host "Auto-installing FFmpeg..." -ForegroundColor Yellow
+            return Install-FFmpeg -Silent
         }
         else {
-            Write-Host "FFmpeg installation cancelled. Cannot proceed without FFmpeg." -ForegroundColor Red
-            return $false
+            Write-Host ""
+            $install = Read-Host "Do you want to install FFmpeg now? (y/n)"
+            
+            if ($install -eq 'y' -or $install -eq 'Y') {
+                return Install-FFmpeg
+            }
+            else {
+                Write-Host "FFmpeg installation cancelled. Cannot proceed without FFmpeg." -ForegroundColor Red
+                return $false
+            }
         }
     }
     
     return $true
+}
+
+function Install-FFmpeg {
+    <#
+    .SYNOPSIS
+    Installs FFmpeg using winget or downloads from GitHub releases
+    
+    .DESCRIPTION
+    This function attempts to install FFmpeg using multiple methods:
+    1. winget (if available)
+    2. Direct download from GitHub releases (BtbN/FFmpeg-Builds or gyan.dev)
+    
+    .PARAMETER Silent
+    Run installation silently without user prompts
+    
+    .PARAMETER Method
+    Preferred installation method: 'winget', 'github', or 'auto'
+    
+    .OUTPUTS
+    [bool] Returns $true if installation was successful, $false otherwise
+    
+    .EXAMPLE
+    Install-FFmpeg -Silent
+    #>
+    
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [switch]$Silent,
+        
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('winget', 'github', 'auto')]
+        [string]$Method = 'auto'
+    )
+    
+    Write-Host "Installing FFmpeg..." -ForegroundColor Yellow
+    
+    # Method 1: Try winget first (if requested or auto)
+    if ($Method -eq 'winget' -or $Method -eq 'auto') {
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            Write-Host "Attempting to install FFmpeg using winget..." -ForegroundColor Cyan
+            
+            try {
+                if ($Silent) {
+                    $result = winget install "FFmpeg (Essentials Build)" --accept-package-agreements --accept-source-agreements --silent
+                } else {
+                    $result = winget install "FFmpeg (Essentials Build)" --accept-package-agreements --accept-source-agreements
+                }
+                
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "FFmpeg installed successfully using winget!" -ForegroundColor Green
+                    return $true
+                }
+            } catch {
+                Write-Host "winget installation failed: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "winget not available, trying alternative method..." -ForegroundColor Yellow
+        }
+    }
+    
+    # Method 2: Download from GitHub releases
+    if ($Method -eq 'github' -or $Method -eq 'auto') {
+        Write-Host "Downloading FFmpeg from GitHub releases..." -ForegroundColor Cyan
+        
+        try {
+            # Create temp directory
+            $tempDir = Join-Path $env:TEMP "ffmpeg-install"
+            if (Test-Path $tempDir) {
+                Remove-Item $tempDir -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+            
+            # Download FFmpeg essentials build from BtbN/FFmpeg-Builds
+            $downloadUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+            $zipPath = Join-Path $tempDir "ffmpeg.zip"
+            
+            Write-Host "Downloading from: $downloadUrl" -ForegroundColor Gray
+            
+            # Download with progress
+            if ($Silent) {
+                Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+            } else {
+                $progressPreference = $ProgressPreference
+                $ProgressPreference = 'Continue'
+                Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+                $ProgressPreference = $progressPreference
+            }
+            
+            # Extract to a local directory
+            $extractPath = Join-Path $env:USERPROFILE "ffmpeg"
+            if (Test-Path $extractPath) {
+                Remove-Item $extractPath -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
+            
+            # Extract ZIP file
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $extractPath)
+            
+            # Find the actual FFmpeg directory (it's usually nested)
+            $ffmpegDir = Get-ChildItem -Path $extractPath -Directory | Where-Object { $_.Name -like "*ffmpeg*" } | Select-Object -First 1
+            
+            if ($ffmpegDir) {
+                # Move contents to the main directory
+                $binPath = Join-Path $extractPath "bin"
+                if (Test-Path $binPath) {
+                    Remove-Item $binPath -Recurse -Force
+                }
+                Move-Item -Path (Join-Path $ffmpegDir.FullName "bin") -Destination $binPath
+                
+                # Add to PATH for current session
+                $env:PATH += ";$binPath"
+                
+                # Add to user PATH permanently
+                $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+                if ($userPath -notlike "*$binPath*") {
+                    [Environment]::SetEnvironmentVariable("PATH", "$userPath;$binPath", "User")
+                }
+                
+                Write-Host "FFmpeg installed successfully to: $binPath" -ForegroundColor Green
+                Write-Host "FFmpeg has been added to your PATH" -ForegroundColor Green
+                
+                # Cleanup
+                Remove-Item $tempDir -Recurse -Force
+                
+                return $true
+            } else {
+                throw "Could not find FFmpeg directory in extracted files"
+            }
+            
+        } catch {
+            Write-Host "GitHub download failed: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "Trying alternative download source..." -ForegroundColor Yellow
+            
+            # Fallback to gyan.dev
+            try {
+                $downloadUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+                $zipPath = Join-Path $tempDir "ffmpeg-gyan.zip"
+                
+                Write-Host "Downloading from gyan.dev: $downloadUrl" -ForegroundColor Gray
+                
+                if ($Silent) {
+                    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+                } else {
+                    $progressPreference = $ProgressPreference
+                    $ProgressPreference = 'Continue'
+                    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+                    $ProgressPreference = $progressPreference
+                }
+                
+                # Extract and setup (same logic as above)
+                $extractPath = Join-Path $env:USERPROFILE "ffmpeg"
+                if (Test-Path $extractPath) {
+                    Remove-Item $extractPath -Recurse -Force
+                }
+                New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
+                
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+                [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $extractPath)
+                
+                $ffmpegDir = Get-ChildItem -Path $extractPath -Directory | Where-Object { $_.Name -like "*ffmpeg*" } | Select-Object -First 1
+                
+                if ($ffmpegDir) {
+                    $binPath = Join-Path $extractPath "bin"
+                    if (Test-Path $binPath) {
+                        Remove-Item $binPath -Recurse -Force
+                    }
+                    Move-Item -Path (Join-Path $ffmpegDir.FullName "bin") -Destination $binPath
+                    
+                    $env:PATH += ";$binPath"
+                    
+                    $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+                    if ($userPath -notlike "*$binPath*") {
+                        [Environment]::SetEnvironmentVariable("PATH", "$userPath;$binPath", "User")
+                    }
+                    
+                    Write-Host "FFmpeg installed successfully to: $binPath" -ForegroundColor Green
+                    Write-Host "FFmpeg has been added to your PATH" -ForegroundColor Green
+                    
+                    Remove-Item $tempDir -Recurse -Force
+                    
+                    return $true
+                } else {
+                    throw "Could not find FFmpeg directory in extracted files"
+                }
+                
+            } catch {
+                Write-Host "Alternative download also failed: $($_.Exception.Message)" -ForegroundColor Red
+                Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+                return $false
+            }
+        }
+    }
+    
+    Write-Host "FFmpeg installation failed. Please install manually from https://ffmpeg.org/download.html" -ForegroundColor Red
+    return $false
 }
 
 function Get-VideoProperties {
@@ -582,11 +761,4 @@ function Compress-Video {
     }
 }
 
-# Export module members
-Export-ModuleMember -Function @(
-    'Compress-Video',
-    'Test-FFmpegInstallation',
-    'Get-VideoProperties',
-    'Get-OptimalCompressionSettings',
-    'Get-OutputDirectory'
-)
+# Functions are exported via the .psd1 manifest file

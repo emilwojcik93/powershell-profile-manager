@@ -271,9 +271,4 @@ Write-Host "ExampleModule loaded successfully!" -ForegroundColor Green
 Write-Host "Use Get-ExampleInfo to see module information" -ForegroundColor Yellow
 Write-Host "Use Test-ExampleFunction to test module functionality" -ForegroundColor Yellow
 
-# Export module members
-Export-ModuleMember -Function @(
-    'Get-ExampleInfo',
-    'Set-ExampleConfig',
-    'Test-ExampleFunction'
-)
+# Functions are exported via the .psd1 manifest file

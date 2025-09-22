@@ -553,16 +553,4 @@ function Initialize-ProfileManager {
 # Initialize the profile manager
 Initialize-ProfileManager
 
-# Export profile manager functions
-Export-ModuleMember -Function @(
-    'Load-ProfileModule',
-    'Unload-ProfileModule', 
-    'Reload-ProfileModule',
-    'Get-ProfileModules',
-    'Get-ProfileModuleStatus',
-    'Unload-AllProfileModules',
-    'Remove-ProfileManager',
-    'Restore-DefaultProfile',
-    'Get-ProfileManagerStatus',
-    'Write-ProfileLog'
-)
+# Profile manager functions are now available in the global scope

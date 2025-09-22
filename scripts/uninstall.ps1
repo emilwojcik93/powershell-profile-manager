@@ -279,8 +279,12 @@ function Show-Confirmation {
     Write-UninstallLog "Profile Path: $(Get-ProfilePath)" "Info"
     Write-UninstallLog ""
     
-    $confirm = Read-Host "Are you sure you want to continue? (y/n)"
-    return ($confirm -eq 'y' -or $confirm -eq 'Y')
+    if ($Silent -or $Force) {
+        return $true
+    } else {
+        $confirm = Read-Host "Are you sure you want to continue? (y/n)"
+        return ($confirm -eq 'y' -or $confirm -eq 'Y')
+    }
 }
 
 # Main uninstallation process
