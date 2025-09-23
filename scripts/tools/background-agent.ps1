@@ -129,12 +129,13 @@ foreach ($script in $scriptsToRun) {
             Write-AgentLog "$script completed successfully" 'Success'
         } else {
             Write-AgentLog "$script failed with exit code: $LASTEXITCODE" 'Error'
-            $global:AgentErrors += "$script failed"
+            Write-AgentLog "Error output: $result" 'Error'
+            $global:AgentErrors += "$script failed with exit code $LASTEXITCODE"
             $allTestsPassed = $false
         }
     } catch {
         Write-AgentLog "$script exception: $($_.Exception.Message)" 'Error'
-        $global:AgentErrors += "$script exception"
+        $global:AgentErrors += "$script exception: $($_.Exception.Message)"
         $allTestsPassed = $false
     }
 }
@@ -154,6 +155,13 @@ Write-Host "  Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')" -Foregro
 if ($allTestsPassed) {
     Write-Host "`nOverall Status: [SUCCESS] ALL TESTS PASSED" -ForegroundColor Green
     Write-Host 'Repository is functioning correctly!' -ForegroundColor Green
+    
+    # Clear any previous error file
+    $errorFile = Join-Path $RepositoryRoot "agent-errors.json"
+    if (Test-Path $errorFile) {
+        Remove-Item $errorFile -Force
+    }
+    
     exit 0
 } else {
     Write-Host "`nOverall Status: [ERROR] ISSUES FOUND" -ForegroundColor Red
@@ -161,5 +169,19 @@ if ($allTestsPassed) {
     foreach ($errorLog in $global:AgentErrors) {
         Write-Host "  - $errorLog" -ForegroundColor Red
     }
+    
+    # Save error information for auto-fix script
+    $errorInfo = @{
+        Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
+        RepositoryRoot = $RepositoryRoot
+        AgentMode = $Mode
+        Errors = $global:AgentErrors
+        PowerShellVersion = $PSVersionTable.PSVersion.ToString()
+    }
+    
+    $errorFile = Join-Path $RepositoryRoot "agent-errors.json"
+    $errorInfo | ConvertTo-Json -Depth 3 | Set-Content -Path $errorFile -Encoding UTF8
+    Write-AgentLog "Error information saved to: $errorFile" 'Info'
+    
     exit 1
 }
