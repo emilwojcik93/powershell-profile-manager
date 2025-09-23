@@ -78,7 +78,7 @@ $($recommendations -join "`n")
 
 # Ensure output directory exists
 $outputDir = Split-Path $OutputPath -Parent
-if (!(Test-Path $outputDir)) {
+if ($outputDir -and !(Test-Path $outputDir)) {
     New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
 }
 
