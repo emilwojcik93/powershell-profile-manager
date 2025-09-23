@@ -16,6 +16,23 @@
 
 [CmdletBinding()]
 param(
+    # Standard automation parameters
+    [Parameter(Mandatory = $false)]
+    [switch]$Silent,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Unattended,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Force,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$VerboseLogging,
+    
+    # Custom parameters
     [Parameter(Mandatory = $false)]
     [string]$Status = "unknown"
 )

@@ -7,12 +7,32 @@
     This script tests the uninstallation script with automation parameters and logging,
     then verifies the uninstallation was successful.
     
-.PARAMETER None
-    This script takes no parameters
-    
 .EXAMPLE
     .\test-uninstallation-script.ps1
 #>
+
+[CmdletBinding()]
+param(
+    # Standard automation parameters
+    [Parameter(Mandatory = $false)]
+    [switch]$Silent,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Unattended,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Force,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$VerboseLogging,
+    
+    # Standard path parameters
+    [Parameter(Mandatory = $false)]
+    [string]$RepositoryRoot = (Get-Location)
+)
 
 Write-Host "=== TESTING UNINSTALLATION SCRIPT ===" -ForegroundColor Green
 
