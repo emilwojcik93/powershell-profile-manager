@@ -42,9 +42,9 @@ function Test-RepositoryStructure {
     
     $requiredFiles = @(
         "Microsoft.PowerShell_profile.ps1",
-        "scripts\install.ps1",
-        "scripts\uninstall.ps1",
-        "scripts\release.ps1",
+        "scripts\deploy\install.ps1",
+        "scripts\deploy\uninstall.ps1",
+        "scripts\deploy\release.ps1",
         "README.md",
         "CONTRIBUTING.md"
     )
@@ -252,7 +252,7 @@ function Create-InstallerScript {
         $installerPath = Join-Path $PackagePath "install.ps1"
         
         # Read the current install script
-        $installScript = Get-Content "scripts\install.ps1" -Raw
+        $installScript = Get-Content "scripts\deploy\install.ps1" -Raw
         
         # Update repository URL to use the release
         $installScript = $installScript -replace 'https://raw\.githubusercontent\.com/[^/]+/[^/]+/main', $RepositoryUrl
