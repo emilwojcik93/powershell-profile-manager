@@ -1,12 +1,41 @@
 # PowerShell Profile Manager
 # Main profile loader script
 
+# Immediate SSH/SCP session detection (before any output)
+$IsSSHSession = $false
+$IsNonInteractiveSession = $false
+
+# Check for SSH environment variables immediately
+$sshEnvVars = @($env:SSH_CLIENT, $env:SSH_CONNECTION, $env:SSH_TTY, $env:SSH_AUTH_SOCK)
+$hasSSHEnvVars = ($sshEnvVars | Where-Object { $_ -ne $null }).Count -gt 0
+
+# Check for non-interactive indicators
+$nonInteractiveEnvVars = @($env:CI, $env:BUILD_NUMBER, $env:GITHUB_ACTIONS, $env:AZURE_DEVOPS)
+$hasNonInteractiveEnvVars = ($nonInteractiveEnvVars | Where-Object { $_ -ne $null }).Count -gt 0
+
+# Check parent process for SSH indicators
+try {
+    $currentProcess = Get-Process -Id $PID -ErrorAction SilentlyContinue
+    if ($currentProcess) {
+        $parentProcess = Get-Process -Id $currentProcess.ParentId -ErrorAction SilentlyContinue
+        if ($parentProcess -and $parentProcess.ProcessName -like '*ssh*') {
+            $IsSSHSession = $true
+        }
+    }
+} catch {
+    # Ignore errors in process detection
+}
+
+# Set session flags
+$IsSSHSession = $IsSSHSession -or $hasSSHEnvVars
+$IsNonInteractiveSession = $IsNonInteractiveSession -or $hasNonInteractiveEnvVars
+
 # Profile Manager Configuration
 $ProfileManagerConfig = @{
     ModulesDirectory    = Join-Path $PSScriptRoot 'modules'
-    LogLevel            = 'Info'  # Debug, Info, Warning, Error
+    LogLevel            = if ($IsSSHSession -or $IsNonInteractiveSession) { 'Error' } else { 'Info' }  # Debug, Info, Warning, Error
     AutoLoadModules     = $true
-    EnableModuleLogging = $true
+    EnableModuleLogging = -not ($IsSSHSession -or $IsNonInteractiveSession)
 }
 
 # Logging function
@@ -16,6 +45,11 @@ function Write-ProfileLog {
         [ValidateSet('Debug', 'Info', 'Warning', 'Error')]
         [string]$Level = 'Info'
     )
+    
+    # Skip all output if we're in an SSH/SCP session or non-interactive session
+    if ($IsSSHSession -or $IsNonInteractiveSession) {
+        return
+    }
     
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $logMessage = "[$timestamp] [$Level] $Message"
@@ -42,7 +76,7 @@ function Write-ProfileLog {
     }
 }
 
-# Cursor Environment Detection
+# Environment Detection Functions
 function Test-CursorEnvironment {
     <#
     .SYNOPSIS
@@ -82,11 +116,91 @@ function Test-CursorEnvironment {
     return ($hasCursorIndicators -or $hasVscodeIndicators) -and -not $isWindowsTerminal
 }
 
+function Test-SSHSession {
+    <#
+    .SYNOPSIS
+    Detects if PowerShell is running in an SSH/SCP session
+    
+    .DESCRIPTION
+    Checks for SSH-specific environment variables and process indicators to determine if the session
+    is running over SSH or SCP, which requires minimal output to avoid
+    "Received message too long" errors.
+    
+    .OUTPUTS
+    [bool] Returns $true if running in SSH session, $false otherwise
+    #>
+    
+    # Check for SSH-specific environment variables
+    $sshIndicators = @(
+        $env:SSH_CLIENT,
+        $env:SSH_CONNECTION,
+        $env:SSH_TTY,
+        $env:SSH_AUTH_SOCK
+    )
+    
+    # Check if any SSH indicators are present
+    $hasSSHIndicators = ($sshIndicators | Where-Object { $_ -ne $null }).Count -gt 0
+    
+    # Additional check: if TERM is set to xterm-256color and we have SSH vars
+    $isSSHTerminal = $env:TERM -eq 'xterm-256color' -and $hasSSHIndicators
+    
+    # Check parent process for SSH indicators
+    $isSSHParent = $false
+    try {
+        $currentProcess = Get-Process -Id $PID -ErrorAction SilentlyContinue
+        if ($currentProcess) {
+            $parentProcess = Get-Process -Id $currentProcess.ParentId -ErrorAction SilentlyContinue
+            if ($parentProcess -and $parentProcess.ProcessName -like '*ssh*') {
+                $isSSHParent = $true
+            }
+        }
+    } catch {
+        # Ignore errors in process detection
+    }
+    
+    return $hasSSHIndicators -or $isSSHTerminal -or $isSSHParent
+}
+
+function Test-NonInteractiveSession {
+    <#
+    .SYNOPSIS
+    Detects if PowerShell is running in a non-interactive session
+    
+    .DESCRIPTION
+    Checks for indicators that suggest the session is non-interactive,
+    such as SSH, SCP, or other automated contexts where output should be minimal.
+    
+    .OUTPUTS
+    [bool] Returns $true if running in non-interactive session, $false otherwise
+    #>
+    
+    # Check for non-interactive indicators
+    $nonInteractiveIndicators = @(
+        $env:SSH_CLIENT,
+        $env:SSH_CONNECTION,
+        $env:SSH_TTY,
+        $env:CI,  # Continuous Integration
+        $env:BUILD_NUMBER,  # Jenkins
+        $env:GITHUB_ACTIONS,  # GitHub Actions
+        $env:AZURE_DEVOPS  # Azure DevOps
+    )
+    
+    # Check if any non-interactive indicators are present
+    $hasNonInteractiveIndicators = ($nonInteractiveIndicators | Where-Object { $_ -ne $null }).Count -gt 0
+    
+    # Check if we're in a remote session (PowerShell remoting)
+    $isRemoteSession = $env:COMPUTERNAME -ne $env:COMPUTERNAME -or $PSSenderInfo -ne $null
+    
+    return $hasNonInteractiveIndicators -or $isRemoteSession
+}
+
 # Detect Cursor environment and optimize accordingly
 $IsCursorEnvironment = Test-CursorEnvironment
 
 if ($IsCursorEnvironment) {
-    Write-ProfileLog 'Cursor environment detected - optimizing for agent sessions' 'Info'
+    if (-not ($IsSSHSession -or $IsNonInteractiveSession)) {
+        Write-ProfileLog 'Cursor environment detected - optimizing for agent sessions' 'Info'
+    }
     
     # Optimize for Cursor agent sessions
     $ProfileManagerConfig.LogLevel = 'Warning'  # Reduce logging verbosity
@@ -153,8 +267,14 @@ function Load-ProfileModule {
         # Test module syntax before loading
         $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $moduleFile -Raw), [ref]$null)
         
-        # Load the module
-        Import-Module $moduleFile -Force:$Force -ErrorAction Stop
+        # Load the module with appropriate verbosity based on session type
+        if ($IsSSHSession -or $IsNonInteractiveSession) {
+            # Suppress all output for SSH/SCP sessions
+            Import-Module $moduleFile -Force:$Force -ErrorAction Stop -WarningAction SilentlyContinue -Verbose:$false
+        } else {
+            # Normal loading for interactive sessions
+            Import-Module $moduleFile -Force:$Force -ErrorAction Stop
+        }
         
         Write-ProfileLog "Successfully loaded module: $ModuleName" 'Info'
         return $true
@@ -544,6 +664,10 @@ function Get-ProfileManagerStatus {
         ModulesDirectoryExists = Test-Path $ProfileManagerConfig.ModulesDirectory
         AutoLoadModules        = $ProfileManagerConfig.AutoLoadModules
         LogLevel               = $ProfileManagerConfig.LogLevel
+        IsCursorEnvironment    = $IsCursorEnvironment
+        IsSSHSession          = $IsSSHSession
+        IsNonInteractiveSession = $IsNonInteractiveSession
+        ShouldSuppressOutput  = $IsSSHSession -or $IsNonInteractiveSession
         ConfiguredModules      = @()
         LoadedModules          = @()
         AvailableModules       = @()
@@ -583,6 +707,79 @@ function Get-ProfileManagerStatus {
     }
     
     return $status
+}
+
+function Test-EnvironmentDetection {
+    <#
+    .SYNOPSIS
+    Tests the environment detection functions to help debug session types
+    
+    .DESCRIPTION
+    This function tests all environment detection functions and displays
+    the results to help understand what type of session PowerShell is running in.
+    
+    .EXAMPLE
+    Test-EnvironmentDetection
+    Tests all environment detection functions
+    #>
+    
+    [CmdletBinding()]
+    param()
+    
+    Write-Host "=== Environment Detection Test ===" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Test Cursor environment
+    $cursorResult = Test-CursorEnvironment
+    Write-Host "Cursor Environment: " -NoNewline -ForegroundColor White
+    Write-Host $(if ($cursorResult) { "YES" } else { "NO" }) -ForegroundColor $(if ($cursorResult) { "Green" } else { "Red" })
+    
+    # Test SSH session
+    $sshResult = Test-SSHSession
+    Write-Host "SSH Session: " -NoNewline -ForegroundColor White
+    Write-Host $(if ($sshResult) { "YES" } else { "NO" }) -ForegroundColor $(if ($sshResult) { "Green" } else { "Red" })
+    
+    # Test non-interactive session
+    $nonInteractiveResult = Test-NonInteractiveSession
+    Write-Host "Non-Interactive Session: " -NoNewline -ForegroundColor White
+    Write-Host $(if ($nonInteractiveResult) { "YES" } else { "NO" }) -ForegroundColor $(if ($nonInteractiveResult) { "Green" } else { "Red" })
+    
+    # Show output suppression status
+    $shouldSuppress = $IsSSHSession -or $IsNonInteractiveSession
+    Write-Host "Output Suppression: " -NoNewline -ForegroundColor White
+    Write-Host $(if ($shouldSuppress) { "YES" } else { "NO" }) -ForegroundColor $(if ($shouldSuppress) { "Yellow" } else { "Green" })
+    
+    Write-Host ""
+    Write-Host "=== Environment Variables ===" -ForegroundColor Cyan
+    
+    # Show relevant environment variables
+    $envVars = @(
+        'SSH_CLIENT',
+        'SSH_CONNECTION', 
+        'SSH_TTY',
+        'SSH_AUTH_SOCK',
+        'TERM',
+        'CURSOR_TRACE_ID',
+        'CURSOR_AGENT',
+        'VSCODE_GIT_ASKPASS_MAIN',
+        'VSCODE_GIT_IPC_HANDLE',
+        'WT_SESSION'
+    )
+    
+    foreach ($var in $envVars) {
+        $value = [Environment]::GetEnvironmentVariable($var)
+        if ($value) {
+            Write-Host "$var = $value" -ForegroundColor Green
+        } else {
+            Write-Host "$var = (not set)" -ForegroundColor Gray
+        }
+    }
+    
+    Write-Host ""
+    Write-Host "=== Profile Configuration ===" -ForegroundColor Cyan
+    Write-Host "Log Level: $($ProfileManagerConfig.LogLevel)" -ForegroundColor White
+    Write-Host "Enable Module Logging: $($ProfileManagerConfig.EnableModuleLogging)" -ForegroundColor White
+    Write-Host "Auto Load Modules: $($ProfileManagerConfig.AutoLoadModules)" -ForegroundColor White
 }
 
 function Initialize-ProfileManager {
