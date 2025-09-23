@@ -93,12 +93,32 @@ function Get-ProfilePath {
 function Test-ProfileManagerInstalled {
     $profilePath = Get-ProfilePath
     
-    if (-not (Test-Path $profilePath)) {
-        return $false
+    # Check if profile contains ProfileManager references
+    $profileHasProfileManager = $false
+    if (Test-Path $profilePath) {
+        $profileContent = Get-Content $profilePath -Raw
+        $profileHasProfileManager = $profileContent -like '*ProfileManager*'
     }
     
-    $profileContent = Get-Content $profilePath -Raw
-    return $profileContent -like '*ProfileManager*'
+    # Check if ProfileManager modules exist in user's PowerShell modules directory
+    $userModulesPath = Join-Path (Split-Path $profilePath -Parent) 'modules'
+    $profileManagerModules = @('VideoCompressor', 'PowerShellMCP', 'ExampleModule')
+    $modulesExist = $false
+    
+    if (Test-Path $userModulesPath) {
+        foreach ($module in $profileManagerModules) {
+            $modulePath = Join-Path $userModulesPath $module
+            if (Test-Path $modulePath) {
+                $modulesExist = $true
+                break
+            }
+        }
+    }
+    
+    # Check if installation directory exists
+    $installDirExists = Test-Path $InstallPath
+    
+    return $profileHasProfileManager -or $modulesExist -or $installDirExists
 }
 
 function Unload-ProfileModules {
@@ -106,7 +126,7 @@ function Unload-ProfileModules {
     
     try {
         # Get list of modules that might be loaded
-        $profileModules = @('VideoCompressor', 'ExampleModule')
+        $profileModules = @('VideoCompressor', 'PowerShellMCP', 'ExampleModule')
         $loadedModules = Get-Module | Where-Object { $_.Name -in $profileModules }
         
         foreach ($module in $loadedModules) {
@@ -199,7 +219,7 @@ function Remove-InstallationFiles {
         }
         
         # Get confirmation if not silent and not forced
-        if (-not $Silent -and -not $Force) {
+        if (-not $Silent -and -not $Force -and -not $NonInteractive -and -not $Unattended) {
             $confirm = Read-Host "Remove all installation files from $InstallPath? (y/n)"
             if ($confirm -ne 'y' -and $confirm -ne 'Y') {
                 Write-UninstallLog 'Installation files removal cancelled' 'Warning'
@@ -213,6 +233,51 @@ function Remove-InstallationFiles {
         return $true
     } catch {
         Write-UninstallLog "Failed to remove installation files: $($_.Exception.Message)" 'Error'
+        return $false
+    }
+}
+
+function Remove-UserModules {
+    Write-UninstallLog 'Removing ProfileManager modules from user modules directory...' 'Info'
+    
+    try {
+        $profilePath = Get-ProfilePath
+        $userModulesPath = Join-Path (Split-Path $profilePath -Parent) 'modules'
+        $profileManagerModules = @('VideoCompressor', 'PowerShellMCP', 'ExampleModule')
+        
+        if (-not (Test-Path $userModulesPath)) {
+            Write-UninstallLog "User modules directory not found: $userModulesPath" 'Warning'
+            return $true
+        }
+        
+        if ($KeepModules) {
+            Write-UninstallLog 'Keeping modules as requested' 'Info'
+            return $true
+        }
+        
+        $removedModules = @()
+        foreach ($module in $profileManagerModules) {
+            $modulePath = Join-Path $userModulesPath $module
+            if (Test-Path $modulePath) {
+                try {
+                    Remove-Item -Path $modulePath -Recurse -Force
+                    $removedModules += $module
+                    Write-UninstallLog "  Removed module: $module" 'Success'
+                } catch {
+                    Write-UninstallLog "  Failed to remove module $module`: $($_.Exception.Message)" 'Warning'
+                }
+            }
+        }
+        
+        if ($removedModules.Count -gt 0) {
+            Write-UninstallLog "Removed ProfileManager modules: $($removedModules -join ', ')" 'Success'
+        } else {
+            Write-UninstallLog 'No ProfileManager modules found in user modules directory' 'Info'
+        }
+        
+        return $true
+    } catch {
+        Write-UninstallLog "Failed to remove user modules: $($_.Exception.Message)" 'Error'
         return $false
     }
 }
@@ -277,7 +342,7 @@ function Show-UninstallationSummary {
         Write-UninstallLog "  3. Modules are still available at: $InstallPath" 'Info'
     }
     
-    if (-not $Silent) {
+    if (-not $Silent -and -not $NonInteractive -and -not $Unattended) {
         $restart = Read-Host "`nRestart PowerShell now? (y/n)"
         if ($restart -eq 'y' -or $restart -eq 'Y') {
             Write-UninstallLog 'Restarting PowerShell...' 'Info'
@@ -302,8 +367,10 @@ function Show-Confirmation {
     
     if (-not $KeepModules) {
         Write-UninstallLog '  - All installation files and directories' 'Info'
+        Write-UninstallLog '  - ProfileManager modules from user modules directory' 'Info'
     } else {
         Write-UninstallLog '  - Installation files will be kept' 'Info'
+        Write-UninstallLog '  - User modules will be kept' 'Info'
     }
     
     Write-UninstallLog ''
@@ -311,7 +378,7 @@ function Show-Confirmation {
     Write-UninstallLog "Profile Path: $(Get-ProfilePath)" 'Info'
     Write-UninstallLog ''
     
-    if ($Silent -or $Force) {
+    if ($Silent -or $Force -or $NonInteractive -or $Unattended) {
         return $true
     } else {
         $confirm = Read-Host 'Are you sure you want to continue? (y/n)'
@@ -356,6 +423,12 @@ try {
     # Remove installation files
     if (-not (Remove-InstallationFiles)) {
         Write-UninstallLog 'Failed to remove installation files' 'Error'
+        exit 1
+    }
+    
+    # Remove user modules
+    if (-not (Remove-UserModules)) {
+        Write-UninstallLog 'Failed to remove user modules' 'Error'
         exit 1
     }
     

@@ -482,7 +482,7 @@ function Show-InstallationSummary {
     Write-InstallLog '  2. Test installation: Get-ProfileModules' 'Info'
     Write-InstallLog '  3. Check module status: Get-ProfileModuleStatus VideoCompressor' 'Info'
     
-    if (-not $Silent -and -not $SkipRestartPrompt) {
+    if (-not $Silent -and -not $SkipRestartPrompt -and -not $NonInteractive -and -not $Unattended) {
         $restart = Read-Host "`nRestart PowerShell now? (y/n)"
         if ($restart -eq 'y' -or $restart -eq 'Y') {
             Write-InstallLog 'Restarting PowerShell...' 'Info'
