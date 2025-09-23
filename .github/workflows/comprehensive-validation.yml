@@ -17,6 +17,7 @@ on:
       - '**/*.psd1'
       - '**/*.yml'
       - '**/*.yaml'
+  workflow_dispatch:
 
 env:
   DEV_TEAM_EMAIL: ${{ vars.DEV_TEAM_EMAIL || 'dev-team@company.com' }}
