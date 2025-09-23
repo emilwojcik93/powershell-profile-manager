@@ -11,7 +11,7 @@ Write-Host "=====================================" -ForegroundColor Green
 # Test 1: YAML Validation Script
 Write-Host "`n1. Testing YAML Validation Script..." -ForegroundColor Yellow
 try {
-    $yamlTest = .\scripts\validate-yaml.ps1 -YamlPath "workflows" -ExportReport "test-yaml-report.json" -Quiet
+    $yamlTest = .\scripts\test\validate-yaml.ps1 -YamlPath "workflows" -ExportReport "test-yaml-report.json" -Quiet
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   SUCCESS: YAML validation script works correctly" -ForegroundColor Green
     } else {
@@ -35,7 +35,7 @@ This is a test template with {{variable}}.
         variable = "test value"
     }
     
-    .\scripts\process-template.ps1 -TemplatePath "test-template.md" -OutputPath "test-output.md" -Variables $templateVars
+    .\scripts\tools\process-template.ps1 -TemplatePath "test-template.md" -OutputPath "test-output.md" -Variables $templateVars
     
     if (Test-Path "test-output.md") {
         $content = Get-Content "test-output.md" -Raw
@@ -55,7 +55,7 @@ This is a test template with {{variable}}.
 # Test 3: PowerShell Syntax Validation
 Write-Host "`n3. Testing PowerShell Syntax Validation..." -ForegroundColor Yellow
 try {
-    .\scripts\validate-powershell-syntax.ps1 -RepositoryRoot .
+    .\scripts\test\validate-powershell-syntax.ps1 -RepositoryRoot .
     if ($LASTEXITCODE -eq 0) {
         Write-Host "   SUCCESS: PowerShell syntax validation works correctly" -ForegroundColor Green
     } else {
@@ -108,9 +108,9 @@ foreach ($template in $templates) {
 # Test 6: Script Files Exist
 Write-Host "`n6. Testing Script Files..." -ForegroundColor Yellow
 $scripts = @(
-    "scripts\validate-yaml.ps1",
-    "scripts\validate-powershell-syntax.ps1",
-    "scripts\process-template.ps1"
+    "scripts\test\validate-yaml.ps1",
+    "scripts\test\validate-powershell-syntax.ps1",
+    "scripts\tools\process-template.ps1"
 )
 
 $allScriptsExist = $true

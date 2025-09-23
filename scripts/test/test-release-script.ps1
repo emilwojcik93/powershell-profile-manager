@@ -26,7 +26,7 @@ $ErrorActionPreference = "Stop"
 Write-Host "Testing Release Script..." -ForegroundColor Green
 
 try {
-    $releaseScriptPath = Join-Path $RepositoryRoot "scripts\release.ps1"
+    $releaseScriptPath = Join-Path $RepositoryRoot "scripts\deploy\release.ps1"
     $result = & $releaseScriptPath -Version "1.0.0-test" -OutputPath ".\test-release" 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "SUCCESS: Release script runs without errors" -ForegroundColor Green

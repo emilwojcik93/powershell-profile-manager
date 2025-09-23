@@ -14,7 +14,7 @@
     .\test-installation-script.ps1
 #>
 
-Write-Host "=== TESTING INSTALLATION SCRIPT ===" -ForegroundColor Green
+Write-Host '=== TESTING INSTALLATION SCRIPT ===' -ForegroundColor Green
 
 $installLogPath = Join-Path $env:TEMP "Install-Test-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 Write-Host "Install log: $installLogPath" -ForegroundColor Cyan
@@ -29,10 +29,10 @@ if (-not (Test-Path $testPath)) {
     exit 1
 }
 
-$modulePath = Join-Path $testPath "modules\VideoCompressor"
+$modulePath = Join-Path $testPath 'modules\VideoCompressor'
 if (-not (Test-Path $modulePath)) {
     Write-Error "Installation failed - module directory not created: $modulePath"
     exit 1
 }
 
-Write-Host "Installation verification completed successfully" -ForegroundColor Green
+Write-Host 'Installation verification completed successfully' -ForegroundColor Green

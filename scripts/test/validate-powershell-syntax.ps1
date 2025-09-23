@@ -41,7 +41,7 @@ $scripts = @("install.ps1", "uninstall.ps1", "release.ps1")
 foreach ($script in $scripts) {
     Write-Host "`nTesting $script script..." -ForegroundColor Cyan
     try {
-        $scriptPath = Join-Path $RepositoryRoot "scripts\$script"
+        $scriptPath = Join-Path $RepositoryRoot "scripts\deploy\$script"
         $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $scriptPath -Raw), [ref]$null)
         Write-Host "SUCCESS: $script syntax is valid" -ForegroundColor Green
     } catch {
