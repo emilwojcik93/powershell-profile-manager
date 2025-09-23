@@ -26,15 +26,15 @@ jobs:
 
     - name: Validate Repository Structure
       shell: pwsh
-      run: .\scripts\test\validate-repository-structure.ps1
+      run: .\scripts\test\validate-repository-structure.ps1 -VerboseLogging -NonInteractive
 
     - name: Validate PowerShell Syntax
       shell: pwsh
-      run: .\scripts\test\validate-powershell-syntax.ps1
+      run: .\scripts\test\validate-powershell-syntax.ps1 -VerboseLogging -NonInteractive
 
     - name: Test Module Loading
       shell: pwsh
-      run: .\scripts\test\test-module-loading.ps1
+      run: .\scripts\test\test-module-loading.ps1 -VerboseLogging -NonInteractive
 
     - name: Create Release Package
       shell: pwsh
@@ -47,7 +47,7 @@ jobs:
 
     - name: Create Release Archive
       shell: pwsh
-      run: .\scripts\build\create-release-archive.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}"
+      run: .\scripts\build\create-release-archive.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}" -VerboseLogging -NonInteractive
 
     - name: Upload Release Artifacts
       uses: actions/upload-artifact@v4
@@ -60,7 +60,7 @@ jobs:
 
     - name: Generate Release Body
       shell: pwsh
-      run: .\scripts\build\prepare-release-body.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}"
+      run: .\scripts\build\prepare-release-body.ps1 -Version "${{ github.event.inputs.version || '1.0.0' }}" -VerboseLogging -NonInteractive
 
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')

@@ -16,7 +16,7 @@ This guide covers various installation methods for the PowerShell Profile Manage
 
 ```powershell
 # Method 1: Using scriptblock (recommended for parameters)
-&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -Force -NonInteractive
+powershell.exe -ExecutionPolicy Bypass -Command "&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -VerboseLogging -Force"
 
 # Method 2: Using Invoke-Expression (no parameters)
 iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1 | iex

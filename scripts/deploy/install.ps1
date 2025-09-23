@@ -3,21 +3,37 @@
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory = $false)]
-    [string]$InstallPath = "${env:USERPROFILE}\PowerShell\ProfileManager",
-    
-    [Parameter(Mandatory = $false)]
-    [string[]]$Modules = @('VideoCompressor'),
-    
+    # Standard automation parameters
     [Parameter(Mandatory = $false)]
     [switch]$Silent,
     
     [Parameter(Mandatory = $false)]
-    [string]$RepositoryUrl = 'https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main',
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Unattended,
     
     [Parameter(Mandatory = $false)]
     [switch]$Force,
     
+    [Parameter(Mandatory = $false)]
+    [switch]$VerboseLogging,
+    
+    # Standard path parameters
+    [Parameter(Mandatory = $false)]
+    [string]$InstallPath = "${env:USERPROFILE}\PowerShell\ProfileManager",
+    
+    [Parameter(Mandatory = $false)]
+    [string]$LogPath,
+    
+    # Standard module parameters
+    [Parameter(Mandatory = $false)]
+    [string[]]$Modules = @('VideoCompressor'),
+    
+    [Parameter(Mandatory = $false)]
+    [string]$RepositoryUrl = 'https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main',
+    
+    # Custom parameters
     [Parameter(Mandatory = $false)]
     [switch]$SkipInternetCheck,
     
@@ -25,16 +41,7 @@ param(
     [string]$SourcePath,
     
     [Parameter(Mandatory = $false)]
-    [switch]$SkipRestartPrompt,
-    
-    [Parameter(Mandatory = $false)]
-    [string]$LogPath,
-    
-    [Parameter(Mandatory = $false)]
-    [switch]$NonInteractive,
-    
-    [Parameter(Mandatory = $false)]
-    [switch]$Unattended
+    [switch]$SkipRestartPrompt
 )
 
 # Set error action preference

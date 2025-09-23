@@ -2,8 +2,30 @@
 # This script is called by GitHub Actions workflows
 
 param(
+    # Standard automation parameters
+    [Parameter(Mandatory = $false)]
+    [switch]$Silent,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Unattended,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Force,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$VerboseLogging,
+    
+    # Standard validation parameters
+    [Parameter(Mandatory = $false)]
     [string]$EventName = "push",
+    
+    [Parameter(Mandatory = $false)]
     [string]$BaseRef = "main",
+    
+    [Parameter(Mandatory = $false)]
     [string]$OutputDir = ".\validation-results"
 )
 

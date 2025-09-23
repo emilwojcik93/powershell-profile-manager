@@ -30,32 +30,32 @@ jobs:
         
     - name: Verify Initial Clean State
       shell: pwsh
-      run: .\scripts\test\verify-initial-clean-state.ps1
+      run: .\scripts\test\verify-initial-clean-state.ps1 -VerboseLogging -NonInteractive
         
     - name: Test Installation Script
       shell: pwsh
-      run: .\scripts\test\test-installation-script.ps1
+      run: .\scripts\test\test-installation-script.ps1 -VerboseLogging -NonInteractive
         
     - name: Verify Installation State
       shell: pwsh
-      run: .\scripts\test\verify-installation-state.ps1
+      run: .\scripts\test\verify-installation-state.ps1 -VerboseLogging -NonInteractive
         
     - name: Test Uninstallation Script
       shell: pwsh
-      run: .\scripts\test\test-uninstallation-script.ps1
+      run: .\scripts\test\test-uninstallation-script.ps1 -VerboseLogging -NonInteractive
         
     - name: Verify Clean Uninstall State
       shell: pwsh
-      run: .\scripts\test\verify-clean-uninstall-state.ps1
+      run: .\scripts\test\verify-clean-uninstall-state.ps1 -VerboseLogging -NonInteractive
         
     - name: Test Remote Installation
       shell: pwsh
-      run: .\scripts\test\test-remote-installation.ps1
+      run: .\scripts\test\test-remote-installation.ps1 -VerboseLogging -NonInteractive
         
     - name: Cleanup Test Environment
       shell: pwsh
-      run: .\scripts\test\cleanup-test-environment.ps1
+      run: .\scripts\test\cleanup-test-environment.ps1 -VerboseLogging -NonInteractive
         
     - name: Generate Test Report
       shell: pwsh
-      run: .\scripts\test\generate-test-report.ps1
+      run: .\scripts\test\generate-test-report.ps1 -VerboseLogging -NonInteractive

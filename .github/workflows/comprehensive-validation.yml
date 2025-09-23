@@ -48,7 +48,7 @@ jobs:
       id: ps-validation
       continue-on-error: true
       run: |
-        .\scripts\workflows\run-comprehensive-validation.ps1 -EventName "${{ github.event_name }}" -BaseRef "${{ github.base_ref }}"
+        .\scripts\workflows\run-comprehensive-validation.ps1 -EventName "${{ github.event_name }}" -BaseRef "${{ github.base_ref }}" -VerboseLogging -NonInteractive
 
     - name: Upload Validation Results
       uses: actions/upload-artifact@v4

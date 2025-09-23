@@ -3,17 +3,9 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $false)]
-    [string]$InstallPath = "${env:USERPROFILE}\PowerShell\ProfileManager",
-    
+    # Standard automation parameters
     [Parameter(Mandatory = $false)]
     [switch]$Silent,
-    
-    [Parameter(Mandatory = $false)]
-    [switch]$Force,
-    
-    [Parameter(Mandatory = $false)]
-    [switch]$KeepModules,
     
     [Parameter(Mandatory = $false)]
     [switch]$NonInteractive,
@@ -22,7 +14,21 @@ param(
     [switch]$Unattended,
     
     [Parameter(Mandatory = $false)]
-    [string]$LogPath
+    [switch]$Force,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$VerboseLogging,
+    
+    # Standard path parameters
+    [Parameter(Mandatory = $false)]
+    [string]$InstallPath = "${env:USERPROFILE}\PowerShell\ProfileManager",
+    
+    [Parameter(Mandatory = $false)]
+    [string]$LogPath,
+    
+    # Custom parameters
+    [Parameter(Mandatory = $false)]
+    [switch]$KeepModules
 )
 
 # Set automation mode if any automation parameter is used

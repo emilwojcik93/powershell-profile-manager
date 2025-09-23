@@ -20,9 +20,27 @@
 
 [CmdletBinding()]
 param(
+    # Standard automation parameters
+    [Parameter(Mandatory = $false)]
+    [switch]$Silent,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Unattended,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$Force,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$VerboseLogging,
+    
+    # Standard path parameters
     [Parameter(Mandatory = $false)]
     [string]$RepositoryRoot = (Get-Location),
     
+    # Custom parameters
     [Parameter(Mandatory = $false)]
     [ValidateSet('full', 'syntax-only', 'workflows-only', 'modules-only')]
     [string]$Mode = 'full'
