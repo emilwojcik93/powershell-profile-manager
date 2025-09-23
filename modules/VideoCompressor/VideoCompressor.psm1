@@ -209,14 +209,23 @@ function Install-FFmpeg {
             
             Write-Host "Downloading from: $downloadUrl" -ForegroundColor Gray
             
-            # Download with progress
-            if ($Silent) {
-                Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+            # Download with robust method
+            $robustDownloadPath = Join-Path $PSScriptRoot '..\..\scripts\tools\Invoke-RobustWebRequest.ps1'
+            if (Test-Path $robustDownloadPath) {
+                . $robustDownloadPath
+                if (-not (Invoke-RobustWebRequest -Uri $downloadUrl -OutFile $zipPath -TimeoutSec 60 -ShowProgress:(-not $Silent))) {
+                    throw 'Failed to download FFmpeg using robust method'
+                }
             } else {
-                $progressPreference = $ProgressPreference
-                $ProgressPreference = 'Continue'
-                Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
-                $ProgressPreference = $progressPreference
+                # Fallback to standard method with timeout
+                if ($Silent) {
+                    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 60
+                } else {
+                    $progressPreference = $ProgressPreference
+                    $ProgressPreference = 'Continue'
+                    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 60
+                    $ProgressPreference = $progressPreference
+                }
             }
             
             # Extract to a local directory
@@ -272,13 +281,23 @@ function Install-FFmpeg {
                 
                 Write-Host "Downloading from gyan.dev: $downloadUrl" -ForegroundColor Gray
                 
-                if ($Silent) {
-                    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
+                # Download with robust method
+                $robustDownloadPath = Join-Path $PSScriptRoot '..\..\scripts\tools\Invoke-RobustWebRequest.ps1'
+                if (Test-Path $robustDownloadPath) {
+                    . $robustDownloadPath
+                    if (-not (Invoke-RobustWebRequest -Uri $downloadUrl -OutFile $zipPath -TimeoutSec 60 -ShowProgress:(-not $Silent))) {
+                        throw 'Failed to download FFmpeg from gyan.dev using robust method'
+                    }
                 } else {
-                    $progressPreference = $ProgressPreference
-                    $ProgressPreference = 'Continue'
-                    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
-                    $ProgressPreference = $progressPreference
+                    # Fallback to standard method with timeout
+                    if ($Silent) {
+                        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 60
+                    } else {
+                        $progressPreference = $ProgressPreference
+                        $ProgressPreference = 'Continue'
+                        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 60
+                        $ProgressPreference = $progressPreference
+                    }
                 }
                 
                 # Extract and setup (same logic as above)

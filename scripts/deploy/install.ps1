@@ -203,8 +203,19 @@ function Install-ProfileManager {
         } else {
             # Download from repository
             $profileScriptUrl = "$RepositoryUrl/Microsoft.PowerShell_profile.ps1"
-            Invoke-WebRequest -Uri $profileScriptUrl -OutFile $profileScriptPath -UseBasicParsing
-            Write-InstallLog 'Downloaded main profile script' 'Success'
+            $robustDownloadPath = Join-Path $PSScriptRoot '..\tools\Invoke-RobustWebRequest.ps1'
+            if (Test-Path $robustDownloadPath) {
+                . $robustDownloadPath
+                if (Invoke-RobustWebRequest -Uri $profileScriptUrl -OutFile $profileScriptPath -TimeoutSec 30) {
+                    Write-InstallLog 'Downloaded main profile script' 'Success'
+                } else {
+                    throw 'Failed to download main profile script'
+                }
+            } else {
+                # Fallback to standard method with timeout
+                Invoke-WebRequest -Uri $profileScriptUrl -OutFile $profileScriptPath -UseBasicParsing -TimeoutSec 30
+                Write-InstallLog 'Downloaded main profile script' 'Success'
+            }
         }
     } catch {
         Write-InstallLog "Failed to copy/download main profile script: $($_.Exception.Message)" 'Error'
@@ -232,10 +243,21 @@ function Install-ProfileManager {
                 }
             } else {
                 # Download from repository
-                $scriptUrl = "$RepositoryUrl/scripts/$scriptFile"
+                $scriptUrl = "$RepositoryUrl/scripts/deploy/$scriptFile"
                 try {
-                    Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath -UseBasicParsing
-                    Write-InstallLog "  Downloaded $scriptFile" 'Success'
+                    $robustDownloadPath = Join-Path $PSScriptRoot '..\tools\Invoke-RobustWebRequest.ps1'
+                    if (Test-Path $robustDownloadPath) {
+                        . $robustDownloadPath
+                        if (Invoke-RobustWebRequest -Uri $scriptUrl -OutFile $scriptPath -TimeoutSec 30) {
+                            Write-InstallLog "  Downloaded $scriptFile" 'Success'
+                        } else {
+                            Write-InstallLog "  Failed to download ${scriptFile} using robust method" 'Warning'
+                        }
+                    } else {
+                        # Fallback to standard method with timeout
+                        Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath -UseBasicParsing -TimeoutSec 30
+                        Write-InstallLog "  Downloaded $scriptFile" 'Success'
+                    }
                 } catch {
                     Write-InstallLog "  Failed to download ${scriptFile}: $($_.Exception.Message)" 'Warning'
                 }
@@ -270,8 +292,19 @@ function Install-ProfileManager {
                     # Download from repository
                     $fileUrl = "$RepositoryUrl/modules/$module/$file"
                     try {
-                        Invoke-WebRequest -Uri $fileUrl -OutFile $filePath -UseBasicParsing
-                        Write-InstallLog "  Downloaded $file" 'Success'
+                        $robustDownloadPath = Join-Path $PSScriptRoot '..\tools\Invoke-RobustWebRequest.ps1'
+                        if (Test-Path $robustDownloadPath) {
+                            . $robustDownloadPath
+                            if (Invoke-RobustWebRequest -Uri $fileUrl -OutFile $filePath -TimeoutSec 30) {
+                                Write-InstallLog "  Downloaded $file" 'Success'
+                            } else {
+                                Write-InstallLog "  Failed to download ${file} using robust method" 'Warning'
+                            }
+                        } else {
+                            # Fallback to standard method with timeout
+                            Invoke-WebRequest -Uri $fileUrl -OutFile $filePath -UseBasicParsing -TimeoutSec 30
+                            Write-InstallLog "  Downloaded $file" 'Success'
+                        }
                     } catch {
                         Write-InstallLog "  Failed to download ${file}: $($_.Exception.Message)" 'Warning'
                     }
@@ -295,8 +328,19 @@ function Install-ProfileManager {
                 $filePath = Join-Path $modulePath $file
                 
                 try {
-                    Invoke-WebRequest -Uri $fileUrl -OutFile $filePath -UseBasicParsing
-                    Write-InstallLog "  Downloaded $file" 'Success'
+                    $robustDownloadPath = Join-Path $PSScriptRoot '..\tools\Invoke-RobustWebRequest.ps1'
+                    if (Test-Path $robustDownloadPath) {
+                        . $robustDownloadPath
+                        if (Invoke-RobustWebRequest -Uri $fileUrl -OutFile $filePath -TimeoutSec 30) {
+                            Write-InstallLog "  Downloaded $file" 'Success'
+                        } else {
+                            Write-InstallLog "  Failed to download ${file} using robust method" 'Warning'
+                        }
+                    } else {
+                        # Fallback to standard method with timeout
+                        Invoke-WebRequest -Uri $fileUrl -OutFile $filePath -UseBasicParsing -TimeoutSec 30
+                        Write-InstallLog "  Downloaded $file" 'Success'
+                    }
                 } catch {
                     Write-InstallLog "  Failed to download ${file}: $($_.Exception.Message)" 'Warning'
                 }

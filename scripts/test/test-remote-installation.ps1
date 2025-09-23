@@ -24,7 +24,22 @@ $installUrl = "https://raw.githubusercontent.com/emilwojcik93/powershell-profile
 
 try {
     Write-Host "Downloading and executing remote install script..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $installUrl -UseBasicParsing | Invoke-Expression -Command "& { `$args = @('-InstallPath', '${env:USERPROFILE}\PowerShell\ProfileManager-Remote', '-Modules', @('VideoCompressor'), '-NonInteractive', '-LogPath', '$remoteInstallLogPath'); . `$MyInvocation.MyCommand.ScriptBlock }"
+    
+    # Use robust download method
+    $robustDownloadPath = Join-Path $PSScriptRoot '..\tools\Invoke-RobustWebRequest.ps1'
+    if (Test-Path $robustDownloadPath) {
+        . $robustDownloadPath
+        $tempScriptPath = Join-Path $env:TEMP "remote-install-$(Get-Date -Format 'yyyyMMdd-HHmmss').ps1"
+        if (Invoke-RobustWebRequest -Uri $installUrl -OutFile $tempScriptPath -TimeoutSec 30) {
+            & $tempScriptPath -InstallPath "${env:USERPROFILE}\PowerShell\ProfileManager-Remote" -Modules @('VideoCompressor') -NonInteractive -LogPath $remoteInstallLogPath
+            Remove-Item $tempScriptPath -Force -ErrorAction SilentlyContinue
+        } else {
+            throw 'Failed to download remote install script using robust method'
+        }
+    } else {
+        # Fallback to standard method with timeout
+        Invoke-WebRequest -Uri $installUrl -UseBasicParsing -TimeoutSec 30 | Invoke-Expression -Command "& { `$args = @('-InstallPath', '${env:USERPROFILE}\PowerShell\ProfileManager-Remote', '-Modules', @('VideoCompressor'), '-NonInteractive', '-LogPath', '$remoteInstallLogPath'); . `$MyInvocation.MyCommand.ScriptBlock }"
+    }
     
     # Verify remote installation
     $remotePath = "${env:USERPROFILE}\PowerShell\ProfileManager-Remote"
