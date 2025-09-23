@@ -24,96 +24,116 @@ param(
     [string]$RepositoryRoot = (Get-Location),
     
     [Parameter(Mandatory = $false)]
-    [ValidateSet("full", "syntax-only", "workflows-only", "modules-only")]
-    [string]$Mode = "full"
+    [ValidateSet('full', 'syntax-only', 'workflows-only', 'modules-only')]
+    [string]$Mode = 'full'
 )
 
-$ErrorActionPreference = "Continue"
+$errorLogActionPreference = 'Continue'
 $global:AgentErrors = @()
 $global:AgentFixes = @()
 
 # Create agent log function
 function Write-AgentLog {
-    param([string]$Message, [string]$Level = "Info")
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    param([string]$Message, [string]$Level = 'Info')
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $emoji = switch ($Level) {
-        "Error" { "ERROR" }
-        "Warning" { "WARN" }
-        "Success" { "SUCCESS" }
-        "Fix" { "FIX" }
-        default { "INFO" }
+        'Error' {
+            'ERROR' 
+        }
+        'Warning' {
+            'WARN' 
+        }
+        'Success' {
+            'SUCCESS' 
+        }
+        'Fix' {
+            'FIX' 
+        }
+        default {
+            'INFO' 
+        }
     }
     Write-Host "[$timestamp] $emoji $Message" -ForegroundColor $(
         switch ($Level) {
-            "Error" { "Red" }
-            "Warning" { "Yellow" }
-            "Success" { "Green" }
-            "Fix" { "Magenta" }
-            default { "White" }
+            'Error' {
+                'Red' 
+            }
+            'Warning' {
+                'Yellow' 
+            }
+            'Success' {
+                'Green' 
+            }
+            'Fix' {
+                'Magenta' 
+            }
+            default {
+                'White' 
+            }
         }
     )
 }
 
-Write-AgentLog "Initializing Background Agent..." "Info"
-Write-AgentLog "PowerShell Version: $($PSVersionTable.PSVersion)" "Info"
-Write-AgentLog "Agent Mode: $Mode" "Info"
-Write-AgentLog "Repository Root: $RepositoryRoot" "Info"
+Write-AgentLog 'Initializing Background Agent...' 'Info'
+Write-AgentLog "PowerShell Version: $($PSVersionTable.PSVersion)" 'Info'
+Write-AgentLog "Agent Mode: $Mode" 'Info'
+Write-AgentLog "Repository Root: $RepositoryRoot" 'Info'
 
 # Run validation scripts based on mode
 $scriptsToRun = @()
 
 switch ($Mode) {
-    "full" {
+    'full' {
         $scriptsToRun = @(
-            "validate-repository-structure.ps1",
-            "validate-powershell-syntax.ps1",
-            "test-module-loading.ps1",
-            "test-profile-loading.ps1",
-            "test-powershellmcp-module.ps1",
-            "test-videocompressor-module.ps1",
-            "test-installation-script.ps1",
-            "test-uninstallation-script.ps1",
-            "test-release-script.ps1"
+            'validate-repository-structure.ps1',
+            'validate-powershell-syntax.ps1',
+            'test-module-loading.ps1',
+            'test-profile-loading.ps1',
+            'test-powershellmcp-module.ps1',
+            'test-videocompressor-module.ps1',
+            'test-installation-script.ps1',
+            'test-uninstallation-script.ps1',
+            'test-release-script.ps1'
         )
     }
-    "syntax-only" {
+    'syntax-only' {
         $scriptsToRun = @(
-            "validate-powershell-syntax.ps1"
+            'validate-powershell-syntax.ps1'
         )
     }
-    "workflows-only" {
+    'workflows-only' {
         $scriptsToRun = @(
-            "validate-repository-structure.ps1",
-            "validate-powershell-syntax.ps1"
+            'validate-repository-structure.ps1',
+            'validate-powershell-syntax.ps1'
         )
     }
-    "modules-only" {
+    'modules-only' {
         $scriptsToRun = @(
-            "test-module-loading.ps1",
-            "test-powershellmcp-module.ps1",
-            "test-videocompressor-module.ps1"
+            'test-module-loading.ps1',
+            'test-powershellmcp-module.ps1',
+            'test-videocompressor-module.ps1'
         )
     }
 }
 
-$scriptsPath = Join-Path $RepositoryRoot "scripts\test"
+$scriptsPath = Join-Path $RepositoryRoot 'scripts\test'
 $allTestsPassed = $true
 
 foreach ($script in $scriptsToRun) {
     $scriptPath = Join-Path $scriptsPath $script
-    Write-AgentLog "Running $script..." "Info"
+    Write-AgentLog "Running $script..." 'Info'
     
     try {
         $result = & $scriptPath -RepositoryRoot $RepositoryRoot 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-AgentLog "$script completed successfully" "Success"
+            Write-AgentLog "$script completed successfully" 'Success'
         } else {
-            Write-AgentLog "$script failed with exit code: $LASTEXITCODE" "Error"
+            Write-AgentLog "$script failed with exit code: $LASTEXITCODE" 'Error'
             $global:AgentErrors += "$script failed"
             $allTestsPassed = $false
         }
     } catch {
-        Write-AgentLog "$script exception: $($_.Exception.Message)" "Error"
+        Write-AgentLog "$script exception: $($_.Exception.Message)" 'Error'
         $global:AgentErrors += "$script exception"
         $allTestsPassed = $false
     }
@@ -121,9 +141,9 @@ foreach ($script in $scriptsToRun) {
 
 # Generate final report
 Write-Host "`n" -NoNewline
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "                    BACKGROUND AGENT REPORT                     " -ForegroundColor Cyan
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host '════════════════════════════════════════════════════════════════' -ForegroundColor Cyan
+Write-Host '                    BACKGROUND AGENT REPORT                     ' -ForegroundColor Cyan
+Write-Host '════════════════════════════════════════════════════════════════' -ForegroundColor Cyan
 
 Write-Host "`nAgent Information:" -ForegroundColor Yellow
 Write-Host "  PowerShell Version: $($PSVersionTable.PSVersion)" -ForegroundColor White
@@ -132,14 +152,14 @@ Write-Host "  Repository Root: $RepositoryRoot" -ForegroundColor White
 Write-Host "  Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')" -ForegroundColor White
 
 if ($allTestsPassed) {
-    Write-Host "`nOverall Status: ✅ ALL TESTS PASSED" -ForegroundColor Green
-    Write-Host "Repository is functioning correctly!" -ForegroundColor Green
+    Write-Host "`nOverall Status: [SUCCESS] ALL TESTS PASSED" -ForegroundColor Green
+    Write-Host 'Repository is functioning correctly!' -ForegroundColor Green
     exit 0
 } else {
-    Write-Host "`nOverall Status: ❌ ISSUES FOUND" -ForegroundColor Red
-    Write-Host "Errors encountered:" -ForegroundColor Red
-    foreach ($error in $global:AgentErrors) {
-        Write-Host "  - $error" -ForegroundColor Red
+    Write-Host "`nOverall Status: [ERROR] ISSUES FOUND" -ForegroundColor Red
+    Write-Host 'Errors encountered:' -ForegroundColor Red
+    foreach ($errorLog in $global:AgentErrors) {
+        Write-Host "  - $errorLog" -ForegroundColor Red
     }
     exit 1
 }
