@@ -188,7 +188,7 @@ jobs:
             # Also run validation on entire workflows directory for comprehensive analysis
             Write-Host "Running comprehensive YAML repository validation..."
             try {
-              $null = & $yamlValidatorPath -YamlPath "workflows" -OutputFormat "HTML" -ExportReport "$outputDir\yaml-comprehensive-report.html" -Quiet -MinimumSeverity "Medium" -NoFailOnIssues 2>&1
+              $null = & $yamlValidatorPath -YamlPath ".github\workflows" -OutputFormat "HTML" -ExportReport "$outputDir\yaml-comprehensive-report.html" -Quiet -MinimumSeverity "Medium" -NoFailOnIssues 2>&1
               Write-Host "Comprehensive YAML validation completed"
             } catch {
               Write-Host "Comprehensive YAML validation encountered issues (continuing...)"
@@ -414,7 +414,7 @@ jobs:
         subject: "🚨 Critical Script/YAML Errors - ${{ github.repository }} - Branch: ${{ github.ref_name }}"
         to: ${{ github.actor }}@company.com,${{ env.DEV_TEAM_EMAIL }}
         from: "github-actions@company.com"
-        html_body: ${{ steps.process-critical-email.outputs.html-content }}
+        html_body: file://validation-results/critical-errors-email.html
 
     - name: Process PR Issues Email Template
       if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-high-errors > 0 || steps.yaml-validation.outputs.yaml-high-errors > 0)
@@ -449,7 +449,7 @@ jobs:
         subject: "⚠️ Script/YAML Issues in PR #${{ github.event.number }} - ${{ github.repository }}"
         to: ${{ github.actor }}@company.com,${{ env.REPO_ADMINS }}
         from: "github-actions@company.com"
-        html_body: ${{ steps.process-pr-email.outputs.html-content }}
+        html_body: file://validation-results/pr-issues-email.html
 
     # Workflow completed successfully - No blocking on errors
     - name: Validation Complete

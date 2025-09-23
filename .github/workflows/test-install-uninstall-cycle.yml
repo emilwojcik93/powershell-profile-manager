@@ -5,15 +5,15 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'scripts/install.ps1'
-      - 'scripts/uninstall.ps1'
-      - 'scripts/test-installation-script.ps1'
+      - 'scripts/deploy/install.ps1'
+      - 'scripts/deploy/uninstall.ps1'
+      - 'scripts/test/test-installation-script.ps1'
   pull_request:
     branches: [ main ]
     paths:
-      - 'scripts/install.ps1'
-      - 'scripts/uninstall.ps1'
-      - 'scripts/test-installation-script.ps1'
+      - 'scripts/deploy/install.ps1'
+      - 'scripts/deploy/uninstall.ps1'
+      - 'scripts/test/test-installation-script.ps1'
 
 env:
   DEV_TEAM_EMAIL: 'dev-team@example.com'
