@@ -241,3 +241,5 @@ jobs:
         Write-Host "This workflow provides informational feedback and does not block PR merges." -ForegroundColor Cyan
         Write-Host "Email notifications sent for critical errors on commits to main branches." -ForegroundColor Cyan
         Write-Host "Detailed reports available as workflow artifacts for 30 days." -ForegroundColor Cyan
+#   W o r k f l o w   t e s t   t r i g g e r  
+ 
