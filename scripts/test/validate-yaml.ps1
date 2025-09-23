@@ -181,8 +181,19 @@ function Test-GitHubActionsWorkflow {
         
         # Validate job structure
         if ($YamlObject.jobs) {
-            foreach ($jobName in $YamlObject.jobs.PSObject.Properties.Name) {
-                $job = $YamlObject.jobs.$jobName
+            # Handle both hashtable and PSCustomObject formats
+            if ($YamlObject.jobs -is [System.Collections.IDictionary]) {
+                $jobNames = $YamlObject.jobs.Keys
+            } else {
+                $jobNames = $YamlObject.jobs.PSObject.Properties.Name
+            }
+            
+            foreach ($jobName in $jobNames) {
+                if ($YamlObject.jobs -is [System.Collections.IDictionary]) {
+                    $job = $YamlObject.jobs[$jobName]
+                } else {
+                    $job = $YamlObject.jobs.$jobName
+                }
                 
                 if (-not $job."runs-on") {
                     Add-ValidationResult -File $FilePath -Severity "High" -Rule "MISSING_RUNS_ON" -Message "Job '$jobName' is missing required 'runs-on' field"
