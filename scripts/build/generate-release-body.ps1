@@ -27,7 +27,7 @@ param(
     [string]$Version,
     
     [Parameter(Mandatory = $false)]
-    [string]$TemplatePath = ".github\templates\release-body.md",
+    [string]$TemplatePath = "templates\markdown\release-body.md",
     
     [Parameter(Mandatory = $false)]
     [string]$RepositoryRoot = (Get-Location)
