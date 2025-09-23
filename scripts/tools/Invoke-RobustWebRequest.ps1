@@ -179,28 +179,4 @@ foreach ($method in $downloadMethods) {
     return $false
 }
 
-# If script is run directly (not dot-sourced), execute with parameters
-if ($MyInvocation.InvocationName -ne '.') {
-    # Script is being executed directly, not dot-sourced
-    # This allows the script to be run standalone for testing
-    if ($args.Count -ge 2) {
-        $Uri = $args[0]
-        $OutFile = $args[1]
-        $TimeoutSec = 30
-        $ShowProgress = $false
-        
-        # Parse additional parameters if provided
-        for ($i = 2; $i -lt $args.Count; $i++) {
-            if ($args[$i] -eq '-TimeoutSec' -and $i + 1 -lt $args.Count) {
-                $TimeoutSec = [int]$args[$i + 1]
-                $i++
-            } elseif ($args[$i] -eq '-ShowProgress') {
-                $ShowProgress = $true
-            }
-        }
-        
-        Invoke-RobustWebRequest -Uri $Uri -OutFile $OutFile -TimeoutSec $TimeoutSec -ShowProgress:$ShowProgress
-    } else {
-        Write-Host "Usage: .\Invoke-RobustWebRequest.ps1 -Uri <URL> -OutFile <Path> [-TimeoutSec <Seconds>] [-ShowProgress]"
-    }
-}
+# Function is now available for use in other scripts when dot-sourced

@@ -1,4 +1,4 @@
-name: Test Install/Uninstall Cycle
+﻿name: Test Install/Uninstall Cycle
 
 on:
   workflow_dispatch:

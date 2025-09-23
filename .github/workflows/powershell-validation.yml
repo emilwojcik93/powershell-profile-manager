@@ -210,11 +210,11 @@ jobs:
           });
 
     - name: Send Email Notification (Critical Errors on Commit)
-      if: github.event_name == 'push' && steps.validation.outputs.critical-errors > 0
+      if: github.event_name == 'push' && steps.validation.outputs.critical-errors > 0 && secrets.SMTP_SERVER != ''
       uses: dawidd6/action-send-mail@v3
       continue-on-error: true
       with:
-        server_address: ${{ secrets.SMTP_SERVER || 'smtp.company.com' }}
+        server_address: ${{ secrets.SMTP_SERVER }}
         server_port: ${{ secrets.SMTP_PORT || '587' }}
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
@@ -286,8 +286,9 @@ jobs:
           </html>
 
     - name: Send Email Notification (High Errors on PR)
-      if: github.event_name == 'pull_request' && steps.validation.outputs.high-errors > 0
+      if: github.event_name == 'pull_request' && steps.validation.outputs.high-errors > 0 && secrets.SMTP_SERVER != ''
       uses: dawidd6/action-send-mail@v3
+      continue-on-error: true
       with:
         server_address: ${{ secrets.SMTP_SERVER }}
         server_port: ${{ secrets.SMTP_PORT }}

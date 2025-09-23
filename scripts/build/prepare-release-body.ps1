@@ -27,17 +27,17 @@ param(
     [string]$Version,
     
     [Parameter(Mandatory = $false)]
-    [string]$OutputPath = "release-body.md",
+    [string]$OutputPath = 'release-body.md',
     
     [Parameter(Mandatory = $false)]
     [string]$RepositoryRoot = (Get-Location)
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
 Write-Host "Generating release body for version $Version..." -ForegroundColor Green
 
-$releaseBody = & (Join-Path $RepositoryRoot ".github\scripts\generate-release-body.ps1") -Version $Version
+$releaseBody = & (Join-Path $RepositoryRoot 'scripts\build\generate-release-body.ps1') -Version $Version
 
 $releaseBody | Out-File -FilePath $OutputPath -Encoding UTF8
 
