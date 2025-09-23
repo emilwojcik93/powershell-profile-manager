@@ -15,7 +15,11 @@ This guide covers various installation methods for the PowerShell Profile Manage
 ### One-Line Installation
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/install.ps1 | iex
+# Method 1: Using scriptblock (recommended for parameters)
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -Force -NonInteractive
+
+# Method 2: Using Invoke-Expression (no parameters)
+iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1 | iex
 ```
 
 This command will:
@@ -28,11 +32,14 @@ This command will:
 ### Installation with Custom Options
 
 ```powershell
-# Install to custom directory
-iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/install.ps1 | iex -InstallPath "C:\MyPowerShellModules"
+# Install to custom directory (using scriptblock method)
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -InstallPath "C:\MyPowerShellModules" -Force -NonInteractive
 
 # Install with specific modules
-iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/install.ps1 | iex -Modules @("VideoCompressor")
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -Modules @("VideoCompressor") -Force -NonInteractive
+
+# Non-interactive installation (for automation)
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -Force -NonInteractive -Unattended
 ```
 
 ## Manual Installation
@@ -150,8 +157,14 @@ Test-ExampleFunction -TestType All
 ### Complete Removal
 
 ```powershell
-# Run uninstall script
-iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/uninstall.ps1 | iex
+# Method 1: Using scriptblock (recommended for parameters)
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/uninstall.ps1))) -Force -NonInteractive
+
+# Method 2: Using Invoke-Expression (no parameters)
+iwr -useb https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/uninstall.ps1 | iex
+
+# Non-interactive uninstallation (for automation)
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/uninstall.ps1))) -Force -NonInteractive -Unattended
 ```
 
 ### Manual Uninstallation
@@ -224,6 +237,49 @@ Add-Content -Path $PROFILE -Value @"
 # PowerShell Profile Manager
 . '$env:USERPROFILE\PowerShell\ProfileManager\Microsoft.PowerShell_profile.ps1'
 "@
+```
+
+## Remote Execution and Automation
+
+### Using PowerShell from Command Line
+
+For automation scenarios, you can execute the scripts directly from the command line:
+
+```cmd
+# Installation with parameters
+powershell.exe -ExecutionPolicy Bypass -Command "&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -Force -NonInteractive -Unattended"
+
+# Uninstallation with parameters
+powershell.exe -ExecutionPolicy Bypass -Command "&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/uninstall.ps1))) -Force -NonInteractive -Unattended"
+```
+
+### Available Parameters
+
+#### Install Script Parameters
+- `-Force`: Skip confirmation prompts
+- `-NonInteractive`: Disable all user prompts
+- `-Unattended`: Full automation mode (combines -Force and -NonInteractive)
+- `-InstallPath`: Custom installation directory
+- `-Modules`: Array of modules to install
+- `-Silent`: Reduce output verbosity
+
+#### Uninstall Script Parameters
+- `-Force`: Skip confirmation prompts
+- `-NonInteractive`: Disable all user prompts
+- `-Unattended`: Full automation mode
+- `-KeepModules`: Keep module files but remove configuration
+
+### Automation Examples
+
+```powershell
+# CI/CD Pipeline Installation
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -Force -NonInteractive -Unattended
+
+# Development Environment Setup
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/install.ps1))) -InstallPath "C:\Dev\PowerShell\ProfileManager" -Modules @("VideoCompressor", "PowerShellMCP") -Force -NonInteractive
+
+# Clean Uninstallation
+&([ScriptBlock]::Create((irm https://raw.githubusercontent.com/emilwojcik93/powershell-profile-manager/main/scripts/deploy/uninstall.ps1))) -Force -NonInteractive -Unattended
 ```
 
 ## Troubleshooting

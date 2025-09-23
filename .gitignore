@@ -21,6 +21,7 @@ releases/
 # Test results
 test-results/
 TestResults.xml
+workflow-validation.json
 
 # Coverage reports
 coverage/

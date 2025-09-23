@@ -33,7 +33,6 @@ Reload-ProfileModule VideoCompressor
 powershell-profile-manager/
 ├── README.md                    # This file
 ├── CONTRIBUTING.md              # Contribution guidelines
-├── MIGRATION_GUIDE.md           # Migration guide from gist
 ├── Microsoft.PowerShell_profile.ps1  # Main profile loader
 ├── scripts/                     # PowerShell scripts
 │   ├── build/                   # Build and packaging scripts
@@ -154,8 +153,6 @@ ModuleName/
 - [Module Development](docs/module-development.md)
 - [Configuration](docs/configuration.md)
 - [Troubleshooting](docs/troubleshooting.md)
-- [Repository Structure](docs/guides/repository-structure.md)
-- [Cursor/Agent Rules](docs/guides/cursor-agent-rules.md)
 
 ## 🤝 Contributing
 
