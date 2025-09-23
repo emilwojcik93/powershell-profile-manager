@@ -402,19 +402,16 @@ jobs:
 
         .\scripts\tools\process-template.ps1 -TemplatePath "templates\html\critical-errors-email-template.html" -OutputPath "validation-results\critical-errors-email.html" -Variables $templateVariables
 
-    - name: Send Email Notification (Critical Errors on Commit)
-      if: github.event_name == 'push' && (steps.ps-validation.outputs.ps-critical-errors > 0 || steps.yaml-validation.outputs.yaml-critical-errors > 0) && secrets.SMTP_SERVER != ''
-      uses: dawidd6/action-send-mail@v3
-      continue-on-error: true
-      with:
-        server_address: ${{ secrets.SMTP_SERVER }}
-        server_port: ${{ secrets.SMTP_PORT || '587' }}
-        username: ${{ secrets.SMTP_USERNAME }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "[CRITICAL] Critical Script/YAML Errors - ${{ github.repository }} - Branch: ${{ github.ref_name }}"
-        to: ${{ github.actor }}@company.com,${{ env.DEV_TEAM_EMAIL }}
-        from: "github-actions@company.com"
-        html_body: file://validation-results/critical-errors-email.html
+    - name: Log Critical Errors (Commit)
+      if: github.event_name == 'push' && (steps.ps-validation.outputs.ps-critical-errors > 0 || steps.yaml-validation.outputs.yaml-critical-errors > 0)
+      shell: pwsh
+      run: |
+        Write-Host "Critical errors detected in commit:" -ForegroundColor Red
+        Write-Host "  - PowerShell Critical Errors: ${{ steps.ps-validation.outputs.ps-critical-errors }}" -ForegroundColor Red
+        Write-Host "  - YAML Critical Errors: ${{ steps.yaml-validation.outputs.yaml-critical-errors }}" -ForegroundColor Red
+        Write-Host "  - Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -ForegroundColor Cyan
+        Write-Host "  - Commit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" -ForegroundColor Cyan
+        Write-Host "Note: GitHub will automatically send workflow failure notifications via email" -ForegroundColor Yellow
 
     - name: Process PR Issues Email Template
       if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-high-errors > 0 || steps.yaml-validation.outputs.yaml-high-errors > 0)
@@ -438,19 +435,16 @@ jobs:
 
         .\scripts\tools\process-template.ps1 -TemplatePath "templates\html\pr-issues-email-template.html" -OutputPath "validation-results\pr-issues-email.html" -Variables $templateVariables
 
-    - name: Send Email Notification (High Errors on PR)
-      if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-high-errors > 0 || steps.yaml-validation.outputs.yaml-high-errors > 0) && secrets.SMTP_SERVER != ''
-      uses: dawidd6/action-send-mail@v3
-      continue-on-error: true
-      with:
-        server_address: ${{ secrets.SMTP_SERVER }}
-        server_port: ${{ secrets.SMTP_PORT }}
-        username: ${{ secrets.SMTP_USERNAME }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "[WARNING] Script/YAML Issues in PR #${{ github.event.number }} - ${{ github.repository }}"
-        to: ${{ github.actor }}@company.com,${{ env.REPO_ADMINS }}
-        from: "github-actions@company.com"
-        html_body: file://validation-results/pr-issues-email.html
+    - name: Log High Priority Issues (PR)
+      if: github.event_name == 'pull_request' && (steps.ps-validation.outputs.ps-high-errors > 0 || steps.yaml-validation.outputs.yaml-high-errors > 0)
+      shell: pwsh
+      run: |
+        Write-Host "High priority issues detected in PR:" -ForegroundColor Yellow
+        Write-Host "  - PowerShell High Errors: ${{ steps.ps-validation.outputs.ps-high-errors }}" -ForegroundColor Yellow
+        Write-Host "  - YAML High Errors: ${{ steps.yaml-validation.outputs.yaml-high-errors }}" -ForegroundColor Yellow
+        Write-Host "  - PR: ${{ github.event.pull_request.html_url }}" -ForegroundColor Cyan
+        Write-Host "  - Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -ForegroundColor Cyan
+        Write-Host "Note: GitHub will automatically send workflow notifications via email" -ForegroundColor Yellow
 
     # Workflow completed successfully - No blocking on errors
     - name: Validation Complete

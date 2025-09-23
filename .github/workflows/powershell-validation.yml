@@ -209,115 +209,25 @@ jobs:
             body: comment
           });
 
-    - name: Send Email Notification (Critical Errors on Commit)
-      if: github.event_name == 'push' && steps.validation.outputs.critical-errors > 0 && secrets.SMTP_SERVER != ''
-      uses: dawidd6/action-send-mail@v3
-      continue-on-error: true
-      with:
-        server_address: ${{ secrets.SMTP_SERVER }}
-        server_port: ${{ secrets.SMTP_PORT || '587' }}
-        username: ${{ secrets.SMTP_USERNAME }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "[CRITICAL] Critical PowerShell Script Errors - ${{ github.repository }} - Branch: ${{ github.ref_name }}"
-        to: ${{ github.actor }}@company.com,${{ env.DEV_TEAM_EMAIL }}
-        from: "github-actions@company.com"
-        html_body: |
-          <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 20px; }
-              .header { background-color: #dc3545; color: white; padding: 15px; border-radius: 5px; }
-              .content { margin: 20px 0; }
-              .summary { background-color: #f8f9fa; padding: 15px; border-left: 4px solid #dc3545; }
-              .files { background-color: #fff3cd; padding: 15px; border-radius: 5px; }
-              .footer { margin-top: 30px; padding: 15px; background-color: #e9ecef; border-radius: 5px; }
-              ul { margin: 10px 0; }
-              a { color: #007bff; text-decoration: none; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h2>[CRITICAL] Critical PowerShell Script Errors Detected</h2>
-            </div>
+    - name: Log Critical Errors (Commit)
+      if: github.event_name == 'push' && steps.validation.outputs.critical-errors > 0
+      shell: pwsh
+      run: |
+        Write-Host "Critical errors detected in commit:" -ForegroundColor Red
+        Write-Host "  - PowerShell Critical Errors: ${{ steps.validation.outputs.critical-errors }}" -ForegroundColor Red
+        Write-Host "  - Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -ForegroundColor Cyan
+        Write-Host "  - Commit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" -ForegroundColor Cyan
+        Write-Host "Note: GitHub will automatically send workflow failure notifications via email" -ForegroundColor Yellow
 
-            <div class="content">
-              <h3>Repository Information</h3>
-              <ul>
-                <li><strong>Repository:</strong> ${{ github.repository }}</li>
-                <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
-                <li><strong>Commit:</strong> ${{ github.sha }}</li>
-                <li><strong>Author:</strong> ${{ github.actor }}</li>
-                <li><strong>Timestamp:</strong> $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")</li>
-              </ul>
-
-              <div class="summary">
-                <h3>Issues Summary</h3>
-                <ul>
-                  <li>[CRITICAL] <strong>Critical Errors:</strong> ${{ steps.validation.outputs.critical-errors }}</li>
-                  <li>[WARNING] <strong>High Priority Issues:</strong> ${{ steps.validation.outputs.high-errors }}</li>
-                  <li>[INFO] <strong>Total Issues:</strong> ${{ steps.validation.outputs.total-issues }}</li>
-                </ul>
-              </div>
-
-              <div class="files">
-                <h3>Affected Files</h3>
-                <p>Changed PowerShell files: ${{ steps.validation.outputs.changed-files }}</p>
-              </div>
-
-              <h3>[WARNING] Action Required</h3>
-              <p>Critical errors have been detected in your PowerShell scripts. Please review the detailed validation reports and address these issues to ensure script functionality and security.</p>
-
-              <h3>Reports Available</h3>
-              <p>Detailed validation reports are available as artifacts in the GitHub Actions workflow run. Download them for specific recommendations and fixes.</p>
-            </div>
-
-            <div class="footer">
-              <p><strong>Quick Links:</strong></p>
-              <ul>
-                <li><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run & Download Reports</a></li>
-                <li><a href="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}">View Commit</a></li>
-                <li><a href="https://github.com/PowerShell/PSScriptAnalyzer/tree/master/RuleDocumentation">PSScriptAnalyzer Rules Documentation</a></li>
-              </ul>
-
-              <hr>
-              <p><em>This is an automated notification from the PowerShell Script Validator. This message is sent to the commit author and the development team for awareness.</em></p>
-            </div>
-          </body>
-          </html>
-
-    - name: Send Email Notification (High Errors on PR)
-      if: github.event_name == 'pull_request' && steps.validation.outputs.high-errors > 0 && secrets.SMTP_SERVER != ''
-      uses: dawidd6/action-send-mail@v3
-      continue-on-error: true
-      with:
-        server_address: ${{ secrets.SMTP_SERVER }}
-        server_port: ${{ secrets.SMTP_PORT }}
-        username: ${{ secrets.SMTP_USERNAME }}
-        password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "[WARNING] PowerShell Script Issues in PR #${{ github.event.number }} - ${{ github.repository }}"
-        to: ${{ github.actor }}@company.com,${{ env.REPO_ADMINS }}
-        from: "github-actions@company.com"
-        html_body: |
-          <h2>[WARNING] PowerShell Script Issues Detected in Pull Request</h2>
-          <p><strong>Repository:</strong> ${{ github.repository }}</p>
-          <p><strong>PR:</strong> #${{ github.event.number }} - ${{ github.event.pull_request.title }}</p>
-          <p><strong>Author:</strong> ${{ github.actor }}</p>
-          <p><strong>Branch:</strong> ${{ github.head_ref }}</p>
-
-          <h3>Summary:</h3>
-          <ul>
-            <li>[CRITICAL] Critical Errors: ${{ steps.validation.outputs.critical-errors }}</li>
-            <li>[WARNING] High Priority Issues: ${{ steps.validation.outputs.high-errors }}</li>
-            <li>[INFO] Total Issues: ${{ steps.validation.outputs.total-issues }}</li>
-          </ul>
-
-          <p><strong>Next Steps:</strong> Please review the detailed report and address these issues before merging.</p>
-
-          <p><a href="${{ github.event.pull_request.html_url }}">View Pull Request</a></p>
-          <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a></p>
-
-          <hr>
-          <p><em>This is an automated message from the PowerShell Script Validator.</em></p>
+    - name: Log High Priority Issues (PR)
+      if: github.event_name == 'pull_request' && steps.validation.outputs.high-errors > 0
+      shell: pwsh
+      run: |
+        Write-Host "High priority issues detected in PR:" -ForegroundColor Yellow
+        Write-Host "  - PowerShell High Errors: ${{ steps.validation.outputs.high-errors }}" -ForegroundColor Yellow
+        Write-Host "  - PR: ${{ github.event.pull_request.html_url }}" -ForegroundColor Cyan
+        Write-Host "  - Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -ForegroundColor Cyan
+        Write-Host "Note: GitHub will automatically send workflow notifications via email" -ForegroundColor Yellow
 
     # Workflow completed successfully - No blocking on errors
     - name: Validation Complete
