@@ -42,98 +42,7 @@ jobs:
       id: validation
       continue-on-error: true
       run: |
-        try {
-          # Import the validator script
-          $validatorPath = ".\scripts\test\validate-powershell-syntax.ps1"
-
-          if (Test-Path $validatorPath) {
-            Write-Host "Running PowerShell validation using: $validatorPath"
-
-            # Create output directory
-            $outputDir = ".\validation-results"
-            New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
-
-            # Get list of changed PowerShell files
-            $changedFiles = @()
-            if ("${{ github.event_name }}" -eq "pull_request") {
-              $changedFiles = git diff --name-only origin/${{ github.base_ref }}..HEAD | Where-Object { $_ -match '\.ps1$|\.psm1$|\.psd1$' }
-            } else {
-              $changedFiles = git diff --name-only HEAD~1..HEAD | Where-Object { $_ -match '\.ps1$|\.psm1$|\.psd1$' }
-            }
-
-            Write-Host "Changed PowerShell files: $($changedFiles -join ', ')"
-
-            # Initialize results
-            $allResults = @()
-            $criticalCount = 0
-            $highCount = 0
-            $totalCount = 0
-
-            # Validate each changed file
-            foreach ($file in $changedFiles) {
-              if (Test-Path $file) {
-                Write-Host "Validating: $file"
-
-                # Run validation on individual file (ignore exit code to continue validation)
-                try {
-                  $null = & $validatorPath -ScriptPath $file -OutputFormat "JSON" -ExportReport "$outputDir\$($file -replace '[\\\/:]', '_').json" -Quiet -MinimumSeverity "All" -NoFailOnIssues 2>&1
-                  Write-Host "Validation completed for: $file"
-                } catch {
-                  Write-Host "Validation encountered issues for: $file (continuing...)"
-                }
-              }
-            }
-
-            # Also run validation on entire repository for comprehensive analysis
-            Write-Host "Running comprehensive repository validation..."
-            try {
-              $null = & $validatorPath -ScriptPath "." -OutputFormat "HTML" -ExportReport "$outputDir\comprehensive-report.html" -Quiet -MinimumSeverity "Medium" -NoFailOnIssues 2>&1
-              Write-Host "Comprehensive validation completed"
-            } catch {
-              Write-Host "Comprehensive validation encountered issues (continuing...)"
-            }
-
-            # Count issues by parsing the JSON reports
-            $criticalCount = 0
-            $highCount = 0
-            $totalCount = 0
-
-            # Parse individual file reports
-            foreach ($file in $changedFiles) {
-              $reportFile = "$outputDir\$($file -replace '[\\\/:]', '_').json"
-              if (Test-Path $reportFile) {
-                try {
-                  $report = Get-Content $reportFile -Raw | ConvertFrom-Json
-                  if ($report -and $report.Count -gt 0) {
-                    $criticalCount += ($report | Where-Object { $_.Severity -eq 'Critical' -or $_.Severity -eq 'Error' }).Count
-                    $highCount += ($report | Where-Object { $_.Severity -eq 'Warning' -or $_.Severity -eq 'High' }).Count
-                    $totalCount += $report.Count
-                  }
-                } catch {
-                  Write-Host "Could not parse report for: $file"
-                }
-              }
-            }
-
-            Write-Host "Validation completed. Critical: $criticalCount, High: $highCount, Total: $totalCount"
-          } else {
-            Write-Host "Validator script not found at: $validatorPath"
-            $criticalCount = 0
-            $highCount = 0
-            $totalCount = 0
-          }
-        } catch {
-          Write-Host "Error during validation: $_"
-          $criticalCount = 0
-          $highCount = 0
-          $totalCount = 0
-        }
-
-        # Set GitHub outputs
-        echo "critical-errors=$criticalCount" >> $env:GITHUB_OUTPUT
-        echo "high-errors=$highCount" >> $env:GITHUB_OUTPUT
-        echo "total-issues=$totalCount" >> $env:GITHUB_OUTPUT
-        echo "changed-files=$($changedFiles -join ',')" >> $env:GITHUB_OUTPUT
+        .\scripts\workflows\run-powershell-validation.ps1 -EventName "${{ github.event_name }}" -BaseRef "${{ github.base_ref }}"
 
     - name: Upload Validation Results
       uses: actions/upload-artifact@v4
@@ -143,65 +52,18 @@ jobs:
         path: validation-results/
         retention-days: 30
 
-    - name: Comment on PR (Any Issues Found)
+    - name: Generate PR Comment
+      if: github.event_name == 'pull_request' && (steps.validation.outputs.total-issues > 0 || steps.validation.outputs.changed-files != '')
+      shell: pwsh
+      run: |
+        .\scripts\workflows\generate-pr-comment.ps1 -CriticalErrors ${{ steps.validation.outputs.critical-errors }} -HighErrors ${{ steps.validation.outputs.high-errors }} -TotalIssues ${{ steps.validation.outputs.total-issues }} -ChangedFiles '${{ steps.validation.outputs.changed-files }}' -RunId '${{ github.run_id }}' -Repository '${{ github.repository }}'
+
+    - name: Comment on PR
       if: github.event_name == 'pull_request' && (steps.validation.outputs.total-issues > 0 || steps.validation.outputs.changed-files != '')
       uses: actions/github-script@v7
       with:
         script: |
-          const criticalErrors = ${{ steps.validation.outputs.critical-errors }};
-          const highErrors = ${{ steps.validation.outputs.high-errors }};
-          const totalIssues = ${{ steps.validation.outputs.total-issues }};
-          const changedFiles = '${{ steps.validation.outputs.changed-files }}';
-
-          let statusIcon = '[OK]';
-          let statusMessage = 'No issues detected.';
-
-          if (criticalErrors > 0) {
-            statusIcon = '[CRITICAL]';
-            statusMessage = 'Critical errors detected - please review immediately.';
-          } else if (highErrors > 0) {
-            statusIcon = '[WARNING]';
-            statusMessage = 'High priority issues detected - please review.';
-          } else if (totalIssues > 0) {
-            statusIcon = '[INFO]';
-            statusMessage = 'Minor issues detected - consider addressing for better code quality.';
-          }
-
-          const comment = `## PowerShell Script Validation Results ${statusIcon}
-
-          **Analysis Summary:**
-          - [CRITICAL] Critical Errors: ${criticalErrors}
-          - [WARNING] High Priority Issues: ${highErrors}
-          - [INFO] Total Issues: ${totalIssues}
-          - Files Analyzed: ${changedFiles.split(',').length > 0 ? changedFiles.split(',').length : 'None'}
-
-          ### Status
-          ${statusMessage}
-
-          ### Analyzed Files
-          ${changedFiles ? changedFiles.split(',').map(f => '- ' + f).join('\\n') : '- No PowerShell files changed'}
-
-          ### Detailed Reports
-          Comprehensive validation reports are available as workflow artifacts:
-          - **Individual File Reports**: JSON format for each analyzed file
-          - **Comprehensive HTML Report**: Complete repository analysis
-          - **Summary Report**: JSON format with overall statistics
-
-          ### Recommendations
-          ${criticalErrors > 0 ? '[CRITICAL] **Priority 1**: Address critical errors to ensure script functionality' : ''}
-          ${highErrors > 0 ? '[WARNING] **Priority 2**: Review high priority issues for best practices compliance' : ''}
-          ${totalIssues > 0 ? '[INFO] **General**: Consider addressing remaining issues for improved code quality' : '[OK] **Great job!** No issues detected in your PowerShell scripts.'}
-
-          ### Resources
-          - [Download Reports (Workflow Artifacts)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          - [PSScriptAnalyzer Rules](https://github.com/PowerShell/PSScriptAnalyzer/tree/master/RuleDocumentation)
-          - [PowerShell Best Practices](https://docs.microsoft.com/en-us/powershell/scripting/developer/cmdlet/cmdlet-overview)
-
-          ---
-          *This is an informational report and will not block your PR. Review the detailed reports for specific recommendations.*
-
-          *Generated by PowerShell Script Validator | Run ID: ${{ github.run_id }}*`;
-
+          const comment = require('fs').readFileSync('validation-results/pr-comment.md', 'utf8');
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
@@ -213,23 +75,14 @@ jobs:
       if: github.event_name == 'push' && steps.validation.outputs.critical-errors > 0
       shell: pwsh
       run: |
-        Write-Host "Critical errors detected in commit:" -ForegroundColor Red
-        Write-Host "  - PowerShell Critical Errors: ${{ steps.validation.outputs.critical-errors }}" -ForegroundColor Red
-        Write-Host "  - Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -ForegroundColor Cyan
-        Write-Host "  - Commit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}" -ForegroundColor Cyan
-        Write-Host "Note: GitHub will automatically send workflow failure notifications via email" -ForegroundColor Yellow
+        .\scripts\workflows\log-validation-results.ps1 -EventType "commit" -CriticalErrors ${{ steps.validation.outputs.critical-errors }} -WorkflowRunUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -CommitUrl "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
 
     - name: Log High Priority Issues (PR)
       if: github.event_name == 'pull_request' && steps.validation.outputs.high-errors > 0
       shell: pwsh
       run: |
-        Write-Host "High priority issues detected in PR:" -ForegroundColor Yellow
-        Write-Host "  - PowerShell High Errors: ${{ steps.validation.outputs.high-errors }}" -ForegroundColor Yellow
-        Write-Host "  - PR: ${{ github.event.pull_request.html_url }}" -ForegroundColor Cyan
-        Write-Host "  - Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -ForegroundColor Cyan
-        Write-Host "Note: GitHub will automatically send workflow notifications via email" -ForegroundColor Yellow
+        .\scripts\workflows\log-validation-results.ps1 -EventType "pr" -HighErrors ${{ steps.validation.outputs.high-errors }} -WorkflowRunUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -PrUrl "${{ github.event.pull_request.html_url }}"
 
-    # Workflow completed successfully - No blocking on errors
     - name: Validation Complete
       shell: pwsh
       run: |
@@ -239,7 +92,5 @@ jobs:
         Write-Host "Total Issues: ${{ steps.validation.outputs.total-issues }}" -ForegroundColor $(if (${{ steps.validation.outputs.total-issues }} -gt 0) { 'Yellow' } else { 'Green' })
         Write-Host ""
         Write-Host "This workflow provides informational feedback and does not block PR merges." -ForegroundColor Cyan
-        Write-Host "Email notifications sent for critical errors on commits to main branches." -ForegroundColor Cyan
+        Write-Host "GitHub automatically sends workflow notifications via email." -ForegroundColor Cyan
         Write-Host "Detailed reports available as workflow artifacts for 30 days." -ForegroundColor Cyan
-#   W o r k f l o w   t e s t   t r i g g e r  
- 
