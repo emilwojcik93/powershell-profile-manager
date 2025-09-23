@@ -96,7 +96,7 @@ switch ($Mode) {
     }
 }
 
-$scriptsPath = Join-Path $RepositoryRoot ".github\scripts"
+$scriptsPath = Join-Path $RepositoryRoot "scripts\test"
 $allTestsPassed = $true
 
 foreach ($script in $scriptsToRun) {

@@ -28,9 +28,9 @@ Write-Host "Validating repository structure..." -ForegroundColor Green
 # Required files
 $requiredFiles = @(
     "Microsoft.PowerShell_profile.ps1",
-    "scripts\install.ps1",
-    "scripts\uninstall.ps1",
-    "scripts\release.ps1",
+    "scripts\deploy\install.ps1",
+    "scripts\deploy\uninstall.ps1",
+    "scripts\deploy\release.ps1",
     "README.md",
     "CONTRIBUTING.md",
     "LICENSE",
@@ -42,6 +42,12 @@ $requiredFiles = @(
 $requiredDirs = @(
     "modules",
     "docs",
+    "scripts\build",
+    "scripts\deploy",
+    "scripts\test",
+    "scripts\tools",
+    "templates\html",
+    "templates\markdown",
     ".github\workflows",
     ".cursor"
 )
