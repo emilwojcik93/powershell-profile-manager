@@ -18,9 +18,9 @@ Write-Host "=== VERIFYING INITIAL CLEAN STATE ===" -ForegroundColor Green
 
 # Check for existing installations
 $installPaths = @(
-    "$env:USERPROFILE\PowerShell\ProfileManager",
-    "$env:USERPROFILE\PowerShell\ProfileManager-Test",
-    "$env:USERPROFILE\PowerShell\ProfileManager-Auto"
+    "${env:USERPROFILE}\PowerShell\ProfileManager",
+    "${env:USERPROFILE}\PowerShell\ProfileManager-Test",
+    "${env:USERPROFILE}\PowerShell\ProfileManager-Auto"
 )
 
 $foundInstallations = @()
@@ -42,7 +42,7 @@ if ($foundInstallations.Count -gt 0) {
 }
 
 # Check profile state
-$profilePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+$profilePath = "${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
 if (Test-Path $profilePath) {
     $profileContent = Get-Content -Path $profilePath -Raw
     if ($profileContent -match "ProfileManager") {

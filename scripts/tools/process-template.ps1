@@ -17,7 +17,7 @@
     Hashtable containing variable names and values for replacement
 
 .EXAMPLE
-    .\process-template.ps1 -TemplatePath "templates\markdown\pr-comment-template.md" -OutputPath "processed-comment.md" -Variables @{statusIcon="✅"; totalCritical=0}
+    .\process-template.ps1 -TemplatePath "templates\markdown\pr-comment-template.md" -OutputPath "processed-comment.md" -Variables @{statusIcon="[OK]"; totalCritical=0}
 #>
 
 [CmdletBinding()]

@@ -16,7 +16,7 @@
 
 Write-Host "=== VERIFYING INSTALLATION STATE ===" -ForegroundColor Green
 
-$testPath = "$env:USERPROFILE\PowerShell\ProfileManager-Test"
+$testPath = "${env:USERPROFILE}\PowerShell\ProfileManager-Test"
 
 # Count files and directories
 $fileCount = (Get-ChildItem -Path $testPath -Recurse -File).Count
@@ -44,7 +44,7 @@ foreach ($file in $requiredFiles) {
 }
 
 # Check profile modification
-$profilePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+$profilePath = "${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
 if (Test-Path $profilePath) {
     $profileContent = Get-Content -Path $profilePath -Raw
     if ($profileContent -match "ProfileManager") {

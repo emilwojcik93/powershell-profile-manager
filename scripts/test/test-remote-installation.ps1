@@ -24,10 +24,10 @@ $installUrl = "https://raw.githubusercontent.com/emilwojcik93/powershell-profile
 
 try {
     Write-Host "Downloading and executing remote install script..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $installUrl -UseBasicParsing | Invoke-Expression -Command "& { `$args = @('-InstallPath', '$env:USERPROFILE\PowerShell\ProfileManager-Remote', '-Modules', @('VideoCompressor'), '-NonInteractive', '-LogPath', '$remoteInstallLogPath'); . `$MyInvocation.MyCommand.ScriptBlock }"
+    Invoke-WebRequest -Uri $installUrl -UseBasicParsing | Invoke-Expression -Command "& { `$args = @('-InstallPath', '${env:USERPROFILE}\PowerShell\ProfileManager-Remote', '-Modules', @('VideoCompressor'), '-NonInteractive', '-LogPath', '$remoteInstallLogPath'); . `$MyInvocation.MyCommand.ScriptBlock }"
     
     # Verify remote installation
-    $remotePath = "$env:USERPROFILE\PowerShell\ProfileManager-Remote"
+    $remotePath = "${env:USERPROFILE}\PowerShell\ProfileManager-Remote"
     if (Test-Path $remotePath) {
         Write-Host "  [OK] Remote installation successful" -ForegroundColor Green
     } else {

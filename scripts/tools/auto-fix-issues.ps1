@@ -177,23 +177,23 @@ function Fix-SpecificErrors {
     Write-AutoFixLog 'Analyzing specific errors for targeted fixes...' 'Info'
     $fixesApplied = 0
     
-    foreach ($error in $Errors) {
-        Write-AutoFixLog "Analyzing error: $error" 'Info'
+    foreach ($errorLog in $Errors) {
+        Write-AutoFixLog "Analyzing error: $errorLog" 'Info'
         
         # Fix path-related errors
-        if ($error -match 'scripts\\install\.ps1|scripts\\uninstall\.ps1|scripts\\release\.ps1') {
+        if ($errorLog -match 'scripts\\install\.ps1|scripts\\uninstall\.ps1|scripts\\release\.ps1') {
             Write-AutoFixLog 'Detected path reference error, applying path fixes...' 'Fix'
             $fixesApplied += Fix-PathReferences
         }
         
         # Fix syntax errors
-        if ($error -match 'syntax|parse|token') {
+        if ($errorLog -match 'syntax|parse|token') {
             Write-AutoFixLog 'Detected syntax error, applying syntax fixes...' 'Fix'
             $fixesApplied += Fix-SyntaxErrors
         }
         
         # Fix workflow errors
-        if ($error -match 'workflow|yaml|yml') {
+        if ($errorLog -match 'workflow|yaml|yml') {
             Write-AutoFixLog 'Detected workflow error, applying workflow fixes...' 'Fix'
             $fixesApplied += Fix-WorkflowIssues
         }

@@ -18,9 +18,9 @@ Write-Host "=== CLEANING UP TEST ENVIRONMENT ===" -ForegroundColor Green
 
 # Remove all test installations
 $testPaths = @(
-    "$env:USERPROFILE\PowerShell\ProfileManager-Test",
-    "$env:USERPROFILE\PowerShell\ProfileManager-Remote",
-    "$env:USERPROFILE\PowerShell\ProfileManager-Auto"
+    "${env:USERPROFILE}\PowerShell\ProfileManager-Test",
+    "${env:USERPROFILE}\PowerShell\ProfileManager-Remote",
+    "${env:USERPROFILE}\PowerShell\ProfileManager-Auto"
 )
 
 foreach ($path in $testPaths) {
@@ -31,7 +31,7 @@ foreach ($path in $testPaths) {
 }
 
 # Restore profile if backup exists
-$profilePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+$profilePath = "${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
 $backupPath = "$profilePath.backup"
 if (Test-Path $backupPath) {
     Copy-Item -Path $backupPath -Destination $profilePath -Force

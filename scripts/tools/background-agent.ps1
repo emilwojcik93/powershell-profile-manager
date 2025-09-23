@@ -142,9 +142,9 @@ foreach ($script in $scriptsToRun) {
 
 # Generate final report
 Write-Host "`n" -NoNewline
-Write-Host '════════════════════════════════════════════════════════════════' -ForegroundColor Cyan
+Write-Host '===============================================================' -ForegroundColor Cyan
 Write-Host '                    BACKGROUND AGENT REPORT                     ' -ForegroundColor Cyan
-Write-Host '════════════════════════════════════════════════════════════════' -ForegroundColor Cyan
+Write-Host '===============================================================' -ForegroundColor Cyan
 
 Write-Host "`nAgent Information:" -ForegroundColor Yellow
 Write-Host "  PowerShell Version: $($PSVersionTable.PSVersion)" -ForegroundColor White

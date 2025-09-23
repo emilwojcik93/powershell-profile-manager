@@ -17,14 +17,14 @@
 Write-Host "=== VERIFYING CLEAN UNINSTALL STATE ===" -ForegroundColor Green
 
 # Check that installation directory is gone
-$testPath = "$env:USERPROFILE\PowerShell\ProfileManager-Test"
+$testPath = "${env:USERPROFILE}\PowerShell\ProfileManager-Test"
 if (Test-Path $testPath) {
     Write-Error "Uninstallation incomplete - directory still exists: $testPath"
     exit 1
 }
 
 # Check profile restoration
-$profilePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+$profilePath = "${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
 if (Test-Path $profilePath) {
     $profileContent = Get-Content -Path $profilePath -Raw
     if ($profileContent -match "ProfileManager") {
@@ -37,9 +37,9 @@ if (Test-Path $profilePath) {
 
 # Check for any leftover files
 $leftoverPaths = @(
-    "$env:USERPROFILE\PowerShell\ProfileManager",
-    "$env:USERPROFILE\PowerShell\ProfileManager-Test",
-    "$env:USERPROFILE\PowerShell\ProfileManager-Auto"
+    "${env:USERPROFILE}\PowerShell\ProfileManager",
+    "${env:USERPROFILE}\PowerShell\ProfileManager-Test",
+    "${env:USERPROFILE}\PowerShell\ProfileManager-Auto"
 )
 
 $leftovers = @()

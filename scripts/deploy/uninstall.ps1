@@ -4,7 +4,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [string]$InstallPath = "$env:USERPROFILE\PowerShell\ProfileManager",
+    [string]$InstallPath = "${env:USERPROFILE}\PowerShell\ProfileManager",
     
     [Parameter(Mandatory = $false)]
     [switch]$Silent,
@@ -83,10 +83,10 @@ function Get-ProfilePath {
     # Determine the correct profile path based on PowerShell version
     if ($PSVersionTable.PSVersion.Major -ge 6) {
         # PowerShell 7+
-        return "$env:USERPROFILE\Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
+        return "${env:USERPROFILE}\Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
     } else {
         # Windows PowerShell 5.1
-        return "$env:USERPROFILE\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
+        return "${env:USERPROFILE}\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1"
     }
 }
 

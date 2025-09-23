@@ -307,17 +307,17 @@ jobs:
         $totalIssues = $psTotalIssues + $yamlTotalIssues
 
         # Determine status
-        $statusIcon = '✅'
+        $statusIcon = '[OK]'
         $statusMessage = 'No issues detected.'
 
         if ($totalCritical -gt 0) {
-          $statusIcon = '🚨'
+          $statusIcon = '[CRITICAL]'
           $statusMessage = 'Critical errors detected - please review immediately.'
         } elseif ($totalHigh -gt 0) {
-          $statusIcon = '⚠️'
+          $statusIcon = '[WARNING]'
           $statusMessage = 'High priority issues detected - please review.'
         } elseif ($totalIssues -gt 0) {
-          $statusIcon = '📝'
+          $statusIcon = '[INFO]'
           $statusMessage = 'Minor issues detected - consider addressing for better code quality.'
         }
 
@@ -336,10 +336,10 @@ jobs:
 
         # Prepare recommendations
         $recommendations = @()
-        if ($totalCritical -gt 0) { $recommendations += '🚨 **Priority 1**: Address critical errors to ensure script functionality' }
-        if ($totalHigh -gt 0) { $recommendations += '⚠️ **Priority 2**: Review high priority issues for best practices compliance' }
-        if ($totalIssues -gt 0) { $recommendations += '📝 **General**: Consider addressing remaining issues for improved code quality' }
-        if ($recommendations.Count -eq 0) { $recommendations += '✅ **Great job!** No issues detected in your scripts and YAML files.' }
+        if ($totalCritical -gt 0) { $recommendations += '[CRITICAL] **Priority 1**: Address critical errors to ensure script functionality' }
+        if ($totalHigh -gt 0) { $recommendations += '[WARNING] **Priority 2**: Review high priority issues for best practices compliance' }
+        if ($totalIssues -gt 0) { $recommendations += '[INFO] **General**: Consider addressing remaining issues for improved code quality' }
+        if ($recommendations.Count -eq 0) { $recommendations += '[OK] **Great job!** No issues detected in your scripts and YAML files.' }
 
         # Process template
         $templateVariables = @{
@@ -411,7 +411,7 @@ jobs:
         server_port: ${{ secrets.SMTP_PORT || '587' }}
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "🚨 Critical Script/YAML Errors - ${{ github.repository }} - Branch: ${{ github.ref_name }}"
+        subject: "[CRITICAL] Critical Script/YAML Errors - ${{ github.repository }} - Branch: ${{ github.ref_name }}"
         to: ${{ github.actor }}@company.com,${{ env.DEV_TEAM_EMAIL }}
         from: "github-actions@company.com"
         html_body: file://validation-results/critical-errors-email.html
@@ -446,7 +446,7 @@ jobs:
         server_port: ${{ secrets.SMTP_PORT }}
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "⚠️ Script/YAML Issues in PR #${{ github.event.number }} - ${{ github.repository }}"
+        subject: "[WARNING] Script/YAML Issues in PR #${{ github.event.number }} - ${{ github.repository }}"
         to: ${{ github.actor }}@company.com,${{ env.REPO_ADMINS }}
         from: "github-actions@company.com"
         html_body: file://validation-results/pr-issues-email.html
