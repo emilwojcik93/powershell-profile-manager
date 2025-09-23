@@ -157,7 +157,7 @@ if ($allTestsPassed) {
     Write-Host 'Repository is functioning correctly!' -ForegroundColor Green
     
     # Clear any previous error file
-    $errorFile = Join-Path $RepositoryRoot "agent-errors.json"
+    $errorFile = Join-Path $RepositoryRoot 'agent-errors.json'
     if (Test-Path $errorFile) {
         Remove-Item $errorFile -Force
     }
@@ -172,14 +172,14 @@ if ($allTestsPassed) {
     
     # Save error information for auto-fix script
     $errorInfo = @{
-        Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
-        RepositoryRoot = $RepositoryRoot
-        AgentMode = $Mode
-        Errors = $global:AgentErrors
+        Timestamp         = Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC'
+        RepositoryRoot    = $RepositoryRoot
+        AgentMode         = $Mode
+        Errors            = $global:AgentErrors
         PowerShellVersion = $PSVersionTable.PSVersion.ToString()
     }
     
-    $errorFile = Join-Path $RepositoryRoot "agent-errors.json"
+    $errorFile = Join-Path $RepositoryRoot 'agent-errors.json'
     $errorInfo | ConvertTo-Json -Depth 3 | Set-Content -Path $errorFile -Encoding UTF8
     Write-AgentLog "Error information saved to: $errorFile" 'Info'
     
